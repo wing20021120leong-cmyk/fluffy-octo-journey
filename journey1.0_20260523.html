@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌟 終極專屬親友旅遊神App 🌟</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+HK:wght@500;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans HK', 'Jua', sans-serif;
+            background-color: #FFF9E6;
+            color: #2B1B17;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cartoon-border { border: 4px solid #2B1B17; }
+        .cute-card {
+            border: 4px solid #2B1B17;
+            border-radius: 24px;
+            box-shadow: 5px 5px 0px 0px #2B1B17;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* 按鈕強點擊反饋 */
+    
+        .btn-strong:active {
+            transform: translate(2px,2px) !important;
+            box-shadow: 1px 1px 0 #2B1B17 !important;
+        }
+
+        .notice-done {
+            background-color: #F3F4F6 !important;
+            border-color: #9CA3AF !important;
+            color: #9CA3AF !important;
+            text-decoration: line-through;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        .nav-active {
+            background-color: #FFDE4D !important;
+            transform: scale(1.05);
+        }
+        .page { display: none; width:100%; box-sizing:border-box; }
+        .page.active { display: block; }
+        @keyframes floatingBg {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .float-emoji { animation: floatingBg 4s ease-in-out infinite; }
+        .fullscreen-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.96);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5vw;
+            box-sizing: border-box;
+        }
+        * { box-sizing: border-box; max-width: 100%; }
+        html,body { width:100%; overflow-x:hidden; }
+        .break-words { word-break: break-word; }
+    </style>
+</head>
+<body class="pb-28 w-full overflow-x-hidden">
+
+    <div class="p-3 sm:p-4 bg-[#FFDE4D] cartoon-border border-t-0 border-x-0 flex flex-col gap-2 sticky top-0 z-40 shadow-sm w-full">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+            <div class="flex items-center gap-1 flex-shrink-0">
+                <span class="text-lg sm:text-xl">👥</span>
+                <select id="user-identity-select" disabled class="bg-white border-2 border-[#2B1B17] rounded-xl px-2 py-1 font-black text-xs sm:text-sm opacity-70 w-auto" onchange="saveUserIdentity(this.value)">
+                    <option value="">-- 請選擇你是誰 --</option>
+                    <option value="領隊">🌳 領隊</option>
+                    <option value="肥三伯">👨🏻‍🦱 梁滿</option>
+                    <option value="三伯娘">👱🏻‍♀️ 高木</option>
+                    <option value="爸爸">👨🏻 老添</option>
+                    <option value="媽咪">👩🏻 楊小姐</option>
+                    <option value="家姐^^">👧🏽 波士晴</option>
+                </select>
+		<button onclick="unlockIdentity()" class="text-xs p-1">🔓</button>
+            </div>
+            <span class="bg-[#2B1B17] text-white px-2 sm:px-3 py-1 rounded-full text-xs font-black flex-shrink-0">領隊神物</span>
+        </div>
+        <button id="audio-unlock-bar" onclick="initAudioEngine()" class="w-full bg-[#FF6B6B] text-white text-xs font-black py-1.5 rounded-lg border-2 border-[#2B1B17] shadow-sm animate-pulse btn-strong">
+            🚨 首次使用請點擊此處：開通「奪命晨呼/全體集合」喇叭管道！
+        </button>
+    </div>
+
+    <div id="live-flight-banner" class="mx-0 sm:mx-0 mt-3 bg-[#69A6F9] cute-card p-4 text-white hidden">
+        <div class="flex items-center justify-between border-b-2 border-white/30 pb-2 mb-2 flex-wrap gap-2">
+            <span class="font-black text-lg sm:text-xl flex items-center gap-1">✈️ 今日航班動態情報</span>
+            <span id="flight-tag-date" class="bg-white text-[#69A6F9] text-base font-black px-3 py-0.5 rounded-full">--</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-base sm:text-lg font-bold">
+            <div>航班編號: <span id="flight-num" class="font-black text-yellow-300">--</span></div>
+            <div>登機航廈: <span id="flight-terminal" class="font-black text-yellow-300">--</span></div>
+            <div>登機時間: <span id="flight-time" class="font-black text-yellow-300">--</span></div>
+            <div>行李轉盤: <span id="flight-baggage" class="font-black text-yellow-300">--</span></div>
+        </div>
+    </div>
+
+    <div id="live-broadcast-box" class="mx-3 sm:mx-4 mt-4 bg-[#FF8B8B] cute-card p-4 hidden">
+        <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-1">📢 隊長緊急最新聖旨：</h3>
+        <p id="live-broadcast-text" class="bg-white/90 text-[#2B1B17] p-3 rounded-xl mt-2 font-black text-sm sm:text-base border-2 border-[#2B1B17] break-words"></p>
+    </div>
+
+    <main class="p-3 sm:p-4 w-full">
+        <section id="page-home" class="page active space-y-5 w-full">
+            <div class="cute-card bg-gradient-to-br from-[#A0E7E5] to-[#B4F8C8] p-4 sm:p-5 relative overflow-hidden">
+                <div id="bg-weather-emoji" class="absolute -right-6 -bottom-6 text-7xl sm:text-9xl opacity-15 float-emoji">☀️</div>
+                <div class="flex justify-between items-start relative z-10 gap-3">
+                    <div class="flex-1">
+                        <div class="bg-[#2B1B17] text-white text-xs font-black px-3 py-1 rounded-full inline-block mb-1">實時天氣</div>
+                        <h2 id="weather-location" class="text-2xl sm:text-3xl font-black text-[#2B1B17] tracking-tight break-words">--</h2>
+                        <p id="weather-desc" class="text-xs sm:text-sm font-black text-[#2B1B17]/70 mt-0.5">--</p>
+                    </div>
+                    <span id="weather-icon" class="text-5xl sm:text-6xl float-emoji flex-shrink-0">☀️</span>
+                </div>
+                <div class="mt-4 sm:mt-6 flex flex-row items-end justify-between relative z-10 border-t-2 border-[#2B1B17]/10 pt-4 gap-2">
+    <div class="flex-shrink-0">
+        <span class="text-2xl sm:text-3xl font-black text-gray-700 block mb-1">🌡️ 現時溫度</span>
+        <div id="weather-temp" class="text-5xl sm:text-6xl font-black text-[#111827] tracking-tighter">--</div>
+    </div>
+    <div class="flex gap-2 sm:gap-3 text-right justify-end flex-nowrap items-end">
+        <div>
+            <span class="text-lg sm:text-xl font-bold text-red-600 block">最高</span>
+            <span id="weather-temp-max" class="font-black text-xl sm:text-2xl text-[#2B1B17]">--</span>
+        </div>
+        <div>
+            <span class="text-lg sm:text-xl font-bold text-blue-600 block">最低</span>
+            <span id="weather-temp-min" class="font-black text-xl sm:text-2xl text-[#2B1B17]">--</span>
+        </div>
+        <div>
+            <span class="text-lg sm:text-xl font-bold text-gray-500 block">濕度</span>
+            <span id="weather-humidity" class="font-black text-xl sm:text-2xl">--</span>
+        </div>
+    </div>
+</div>
+            </div>
+            <div class="cute-card bg-[#FFFAF0] p-3 sm:p-4">
+                <h3 class="text-base sm:text-lg font-black text-[#2B1B17] mb-3 flex items-center gap-1">🎒 出門前大考驗（可點擊打勾做記號）</h3>
+                <div id="notice-list" class="flex flex-col gap-2.5"></div>
+            </div>
+<div id="currency-card" class="cute-card bg-white p-4 sm:p-5">
+    <h3 class="text-base sm:text-lg font-black text-[#2B1B17] mb-4 flex items-center gap-1">💱 多幣即時換算</h3>
+    <div class="space-y-4">
+        <div id="currency-mop" class="flex items-center gap-3">
+            <span class="text-2xl">🇲🇴</span>
+            <div class="flex-1">
+                <div class="text-xs text-gray-500 font-bold">MOP - Macanese Pataca</div>
+                <input type="number" id="mopInput" class="w-full border-0 border-b-2 border-[#2B1B17] bg-transparent text-3xl font-black py-1 focus:outline-none" placeholder="0">
+            </div>
+        </div>
+        <div id="currency-jpy" class="flex items-center gap-3">
+            <span class="text-2xl">🇯🇵</span>
+            <div class="flex-1">
+                <div class="text-xs text-gray-500 font-bold">JPY - Japanese Yen</div>
+                <input type="number" id="jpyInput" class="w-full border-0 border-b-2 border-[#2B1B17] bg-transparent text-3xl font-black py-1 focus:outline-none" placeholder="0">
+            </div>
+        </div>
+        <div id="currency-krw" class="flex items-center gap-3">
+            <span class="text-2xl">🇰🇷</span>
+            <div class="flex-1">
+                <div class="text-xs text-gray-500 font-bold">KRW - South Korean Won</div>
+                <input type="number" id="krwInput" class="w-full border-0 border-b-2 border-[#2B1B17] bg-transparent text-3xl font-black py-1 focus:outline-none" placeholder="0">
+            </div>
+        </div>
+    </div>
+</div>
+        </section>
+
+        <section id="page-itinerary" class="page space-y-4 w-full">
+            <div class="cute-card bg-[#E2F0D9] p-3 sm:p-4">
+                <div class="flex justify-between items-center mb-1 flex-wrap gap-2">
+                    <span class="text-xs bg-[#70AD47] text-white font-black px-2 py-0.5 rounded-full">NOW 正在進行</span>
+                    <button onclick="openLandscapeAddress(document.getElementById('current-spot-address-hidden').value, '📍 當前位置完整地址')" class="text-xs font-black text-blue-600 underline whitespace-nowrap btn-strong">🚌 司機放大全螢幕</button>
+                </div>
+                <h3 id="current-itinerary" class="text-base sm:text-lg font-black text-[#2B1B17] break-words">--</h3>
+                <p id="current-spot-address-text" class="text-xs font-bold text-gray-600 mt-1 break-all bg-white/60 p-2 rounded-lg border border-gray-300">暫無地址</p>
+                <input type="hidden" id="current-spot-address-hidden">
+                <div class="mt-3 flex gap-2">
+                    <a id="current-spot-map-link" target="_blank" class="flex-1 text-center bg-white border-2 border-[#2B1B17] rounded-xl py-1.5 font-black text-xs shadow-[2px_2px_0px_0px_#2B1B17] btn-strong">🗺️ 跳轉 Google 導航</a>
+                </div>
+            </div>
+            <div id="itinerary-map-embed-container" class="cute-card bg-white p-2 hidden">
+                <span class="text-xs font-black text-gray-400 p-1 block">🌐 Google 實時嵌入互動地圖：</span>
+                <div id="itinerary-map-html-box" class="w-full h-40 sm:h-48 rounded-xl overflow-hidden border-2 border-[#2B1B17]"></div>
+            </div>
+            <div class="cute-card bg-gray-100 p-3 sm:p-4 border-dashed">
+                <span class="text-xs bg-gray-400 text-white font-black px-2 py-0.5 rounded-full">NEXT 下一站預告</span>
+                <h3 id="next-itinerary" class="text-sm sm:text-base font-black text-gray-500 mt-1 break-words">--</h3>
+            </div>
+            <div class="cute-card bg-[#FFF2CC] p-3 sm:p-4">
+                <h3 class="text-sm sm:text-base font-black text-[#2B1B17] mb-2">📅 查閱全期日程明細大貨艙</h3>
+                <select id="itinerary-day-select" class="w-full bg-white border-4 border-[#2B1B17] rounded-xl p-2 font-black text-sm sm:text-base" onchange="showSingleDaySchedule()"></select>
+                <div id="single-day-schedule-box" class="mt-4 flex flex-col gap-3"></div>
+            </div>
+        </section>
+
+        <section id="page-route" class="page space-y-4 w-full">
+            <div class="cute-card bg-[#FCE4D6] p-3 sm:p-4">
+                <h3 class="text-base sm:text-lg font-black text-[#2B1B17] mb-1">🗺️ 隊長核心大地圖與出口指南</h3>
+                <p class="text-xs font-bold text-gray-600 mb-3">（唔使次次開 Google！跟住隊長嵌入嘅核心路線同車站出口錦囊走就啱！）</p>
+                <div id="core-route-embed-box" class="w-full h-56 sm:h-64 bg-white rounded-2xl border-4 border-[#2B1B17] overflow-hidden mb-3">
+                    <iframe src="https://www.google.com/maps/embed" class="w-full h-full border-0" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+                <div class="bg-white border-2 border-[#2B1B17] p-3 rounded-xl">
+                    <span class="text-xs bg-[#EE7022] text-white font-black px-2 py-0.5 rounded-md">💡 隊長秘密過閘與出口提示：</span>
+                    <div id="route-tips-display" class="text-xs sm:text-sm font-black text-[#2B1B17] mt-2 whitespace-pre-line leading-relaxed break-words">暫時未有填寫備忘。隊長可以在後台輸入：例如「心齋橋站 4-B 出口上嚟轉右直行 3 分鐘」！</div>
+                </div>
+                <div class="mt-3">
+                    <a id="transport-route-link" target="_blank" class="block text-center bg-[#EE7022] text-white border-4 border-[#2B1B17] rounded-2xl py-2.5 font-black text-sm shadow-[4px_4px_0px_0px_#2B1B17] btn-strong">🔗 按此打開完整大路線 Google Maps 連結</a>
+                </div>
+            </div>
+        </section>
+
+        <div id="start-identity-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div class="bg-white cute-card p-5 sm:p-6 w-full max-w-xs text-center space-y-4">
+                <h3 class="text-lg sm:text-xl font-black text-[#2B1B17]">✈️ 歡迎登機！<br>請問你是哪位親友？</h3>
+                <p class="text-xs font-bold text-gray-500">選擇後永久記住，下次唔使再揀</p>
+                <select id="modal-user-select" class="w-full border-4 border-[#2B1B17] rounded-xl p-3 font-black text-base sm:text-lg bg-[#FFF9E6]">
+                    <option value="領隊">🌳 領隊</option>
+                    <option value="肥三伯">👨🏻‍🦱 梁滿</option>
+                    <option value="三伯娘">👱🏻‍♀️ 高木</option>
+                    <option value="爸爸">👨🏻 老添</option>
+                    <option value="媽咪">👩🏻 楊小姐</option>
+                    <option value="家姐^^">👧🏽 波士晴</option>
+                </select>
+                <button onclick="confirmIdentityFromModal()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] font-black py-3 rounded-xl text-sm sm:text-md shadow-[3px_3px_0px_0px_#2B1B17] btn-strong">確定登入 🚀</button>
+            </div>
+        </div>
+
+        <section id="page-vote" class="page space-y-4 w-full">
+            <div class="cute-card bg-[#D9E1F2] p-3 sm:p-4">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h3 id="vote-title" class="text-base sm:text-lg font-black text-[#2B1B17] break-words">--</h3>
+                    <span class="text-xs bg-[#4472C4] text-white font-black px-2 py-0.5 rounded-full whitespace-nowrap">截單: <span id="vote-deadline-display">--</span></span>
+                </div>
+                <div id="vote-options-container" class="grid grid-cols-2 gap-3 mt-4"></div>
+                <div id="vote-result-section" class="mt-6 border-t-2 border-dashed border-gray-400 pt-4 hidden space-y-4">
+                    <h4 class="font-black text-sm text-[#4472C4] text-center">📊 全團即時開票開箱彩虹條</h4>
+                    <div id="vote-bars-container" class="space-y-3"></div>
+                </div>
+            </div>
+            <div class="cute-card bg-[#E2EFDA] p-3 sm:p-4">
+                <h3 class="text-sm sm:text-base font-black text-[#375623] mb-1">🎋 親友盲盒許願池</h3>
+                <p class="text-xs font-bold text-gray-600 mb-3">想食拉麵？想加插行程？喺度填，願望會即時飛去隊長控制室！</p>
+                <div class="flex gap-2">
+                    <input type="text" id="user-wish-input" placeholder="寫下你的願望（例：波士晴想食長腳蟹）..." class="flex-1 bg-white border-2 border-[#2B1B17] rounded-xl px-3 py-2 text-sm font-bold">
+                    <button onclick="submitUserWish()" class="bg-[#70AD47] text-white border-2 border-[#2B1B17] font-black text-xs px-3 rounded-xl shadow-[2px_2px_0px_0px_#2B1B17] flex-shrink-0 btn-strong">雙手合十許願</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-admin" class="page space-y-5 w-full">
+            <div class="cute-card bg-amber-50 p-4 border-red-400">
+                <h2 class="text-lg sm:text-xl font-black text-red-600 border-b-2 border-red-200 pb-2 mb-4 flex items-center justify-between flex-wrap gap-2">
+                    <span>🕹️ 隊長秘密最高控制室</span>
+                    <button onclick="switchPage('home')" class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-lg btn-strong">退出後台</button>
+                </h2>
+                <div class="p-3 bg-red-100 border-2 border-red-500 rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-red-700 block">🚨 【高能特權】全團大集合緊急強震呼叫器：</span>
+                    <input type="text" id="admin-gather-msg" value="限時 5 分鐘！全體即刻去大固力果跑跑人下面集合！" class="w-full text-xs font-bold p-2 border rounded bg-white">
+                    <button onclick="adminSendGatherOrder()" class="w-full bg-red-600 text-white font-black text-sm py-2 rounded-lg border-2 border-[#2B1B17] shadow-md btn-strong">🔥 引爆全體手機：強烈震動+全螢幕紅色集合彈窗！</button>
+                </div>
+                <div class="space-y-1 mb-4">
+                    <label class="text-xs font-black block">📢 即時廣播聖旨（留空隱藏）：</label>
+                    <textarea id="admin-broadcast-input" rows="2" class="w-full p-2 border text-xs rounded" placeholder="入夜後會降溫，大家返酒店著多件衫！"></textarea>
+                    <div class="flex gap-2">
+                        <button onclick="adminPublishBroadcast()" class="flex-1 bg-blue-500 text-white font-black text-xs py-1.5 rounded-lg border btn-strong">發射廣播</button>
+                        <button onclick="adminClearBroadcast()" class="bg-gray-400 text-white font-black text-xs px-3 rounded-lg border btn-strong">撤銷</button>
+                    </div>
+                </div>
+                <div class="p-3 bg-blue-50 border rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-blue-700 block">🌤️ 智能天氣市區切換聯動：</span>
+                    <select id="admin-weather-city" class="w-full border p-1 text-xs font-bold" onchange="fetchWeatherFromAPI()">
+                        <option value="Osaka">大阪 (Osaka)</option>
+                        <option value="Macau">澳門 (Macau)</option>
+                        <option value="Hong Kong">香港 (Hong Kong)</option>
+                        <option value="Busan">釜山 (Busan)</option>
+                    </select>
+                    <div class="grid grid-cols-3 gap-1 text-[11px]">
+                        <input type="text" id="manual-city-name" placeholder="自訂市區">
+                        <input type="text" id="manual-weather-icon" placeholder="天氣圖標">
+                        <input type="text" id="manual-weather-desc" placeholder="天氣描述">
+                        <input type="number" id="manual-temp" placeholder="實時度">
+                        <input type="number" id="manual-temp-max" placeholder="最高度">
+                        <input type="number" id="manual-temp-min" placeholder="最低度">
+                    </div>
+                    <button onclick="applyManualWeather()" class="w-full bg-gray-700 text-white text-[11px] py-1 rounded font-black btn-strong">套用上方應急手動天氣</button>
+                </div>
+<div class="p-3 bg-cyan-50 border rounded-xl mb-4 space-y-2">
+    <span class="text-xs font-black text-cyan-700 block">💱 三幣匯率設定 + 隱藏開關</span>
+<div class="grid grid-cols-3 gap-1 mt-2 text-[11px]">
+    <label class="flex items-center gap-0.5 text-xs font-bold"><input type="checkbox" id="showMop" checked>澳門</label>
+    <label class="flex items-center gap-0.5 text-xs font-bold"><input type="checkbox" id="showJpy" checked>日本</label>
+    <label class="flex items-center gap-0.5 text-xs font-bold"><input type="checkbox" id="showKrw" checked>韓國</label>
+</div>
+        <label class="flex items-center gap-0.5 text-xs font-black text-red-600">
+            <input type="checkbox" id="hideCurrencyToggle" onchange="toggleCurrencyCard()">隱藏整個匯率框
+        </label>
+    </div>
+    <div class="grid grid-cols-2 gap-1">
+        <input type="number" step="0.01" id="admin-mop-jpy" class="border p-1 text-xs font-bold" placeholder="例：19.69">
+        <input type="number" step="0.01" id="admin-mop-krw" class="border p-1 text-xs font-bold" placeholder="例：187.92">
+    </div>
+    <button onclick="saveAllCurrencyRate()" class="w-full bg-cyan-600 text-white text-xs py-1 rounded font-black btn-strong">儲存匯率設定</button>
+</div>
+                <div class="p-3 bg-sky-50 border rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-sky-700 block">✈️ 全期多組航班動態管理庫（可選擇是否顯示給團員）：</span>
+                    <div id="admin-flights-list" class="space-y-2"></div>
+                    <button onclick="adminAddNewFlightSlot()" class="w-full bg-sky-600 text-white text-xs py-1 rounded font-black btn-strong">+ 增加一組新航班數據</button>
+                </div>
+                <div class="p-3 bg-orange-50 border rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-orange-700 block">🗺️ 核心大地圖、出口錦囊與大導航：</span>
+                    <input type="text" id="admin-route-embed-url" placeholder="Google Maps iframe src 網址連結" class="w-full text-xs p-1 border">
+                    <textarea id="admin-route-tips-input" rows="2" placeholder="填寫出口捷徑錦囊（例：地鐵4號出口行3分鐘）..." class="w-full text-xs p-1 border"></textarea>
+                    <input type="text" id="admin-transport-url" placeholder="跳轉大導航超連結" class="w-full text-xs p-1 border">
+                    <button onclick="saveCoreRouteSettings()" class="w-full bg-orange-600 text-white text-xs py-1.5 rounded font-black btn-strong">儲存核心地圖與錦囊</button>
+                </div>
+                <div class="p-3 bg-yellow-100 border rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-yellow-700 block">⏰ 奪命晨呼定時自動引爆器：</span>
+                    <div class="grid grid-cols-2 gap-1">
+                        <input type="date" id="admin-alarm-date" class="border text-xs p-1">
+                        <input type="time" id="admin-alarm-time" class="border text-xs p-1">
+                    </div>
+                    <input type="text" id="admin-alarm-title" value="🐾 隊長奪命大叫：起身啦喂！太陽曬到羅友喇！" class="w-full border text-xs p-1">
+                    <div class="flex gap-1">
+                        <button onclick="adminSaveAlarmSettings()" class="flex-1 bg-yellow-600 text-white text-xs py-1 rounded font-black btn-strong">儲存定時鬧鐘</button>
+                        <button onclick="adminTriggerAlarmNow()" class="bg-red-500 text-white text-xs px-2 rounded font-black btn-strong">立刻手動引爆</button>
+                    </div>
+                </div>
+                <div class="p-3 bg-indigo-50 border rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-black text-indigo-700 block">🗳️ 投票決策箱、開票控制與【隊長偷窺雷達】：</span>
+                    <input type="text" id="admin-vote-title" class="w-full border text-xs p-1">
+                    <div class="grid grid-cols-2 gap-1">
+                        <input type="text" id="admin-opt0-img" placeholder="圖標0"><input type="text" id="admin-opt0-text" placeholder="文字0">
+                        <input type="text" id="admin-opt1-img" placeholder="圖標1"><input type="text" id="admin-opt1-text" placeholder="文字1">
+                    </div>
+                    <input type="time" id="admin-vote-deadline" class="w-full border text-xs p-1">
+                    <div class="p-2 bg-white border-2 border-indigo-400 rounded-lg text-xs">
+                        <span class="font-black text-indigo-600">👁️‍🗨️ 隊長限定：團員認領及投票偷窺雷達：</span>
+                        <div id="admin-vote-radar-box" class="mt-1 font-bold text-gray-700 space-y-1"></div>
+                    </div>
+                    <div class="flex gap-1 mt-2">
+                       <button onclick="adminOpenVote()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg font-black btn-strong">🗳️ 開啟投票（可投票）</button>
+<button onclick="adminPublishVoteResults()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg font-black btn-strong">📢 關閉投票 + 公佈結果</button>
+<button onclick="adminResetVoteSystem()" class="bg-red-500 text-white px-3 py-1.5 rounded-lg font-black btn-strong">🔄 重置投票</button>
+                    </div>
+                </div>
+                <div class="p-3 bg-emerald-50 border rounded-xl mb-4 space-y-1">
+                    <span class="text-xs font-black text-emerald-700 block">🎋 盲盒許願池隊長辦事處（實時收到願願）：</span>
+                    <div id="admin-wishes-box" class="text-xs font-bold text-gray-700 max-h-32 overflow-y-auto bg-white p-2 border rounded space-y-1"></div>
+                    <button onclick="adminClearAllWishes()" class="w-full bg-gray-400 text-white text-[10px] py-0.5 rounded btn-strong">清空所有願望</button>
+                </div>
+                <div class="space-y-1 mb-4">
+                    <label class="text-xs font-black block">🎒 修改出門備忘錄（一行一條提示）：</label>
+                    <textarea id="admin-notice-input" rows="3" class="w-full p-2 border text-xs rounded"></textarea>
+                    <button onclick="saveAdminNotices()" class="w-full bg-gray-700 text-white font-black text-xs py-1 rounded btn-strong">儲存出門備忘錄</button>
+                </div>
+                <div class="space-y-2 border-t pt-4">
+                    <span class="text-xs font-black text-cartoonText block">📅 七日行程排程、詳細地址與地圖嵌入控制倉：</span>
+                    <div id="admin-days-list-container" class="flex flex-col gap-3"></div>
+                    <button onclick="adminAddNewDayConfig()" class="w-full bg-emerald-600 text-white font-black text-xs py-2 rounded-xl border btn-strong">+ 增加新的一天日程 (Day+1)</button>
+                    <button onclick="adminSaveAndPushAllItineraries()" class="w-full bg-blue-600 text-white font-black text-sm py-3 rounded-xl border-2 border-[#2B1B17] shadow-md mt-2 btn-strong">💾 點此：全面儲存並發布 7 日大日程明細！</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white cartoon-border border-b-0 border-x-0 p-2 flex justify-around items-center z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <button class="nav-item flex flex-col items-center justify-center p-2 rounded-xl transition-all btn-strong" data-page="home" id="nav-home">
+            <span class="text-xl sm:text-2xl">🏠</span><span class="text-[10px] font-black text-gray-700">首頁</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center p-2 rounded-xl transition-all btn-strong" data-page="itinerary" id="nav-itinerary">
+            <span class="text-xl sm:text-2xl">📅</span><span class="text-[10px] font-black text-gray-700">日程</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center p-2 rounded-xl transition-all btn-strong" data-page="route" id="nav-route">
+            <span class="text-xl sm:text-2xl">🗺️</span><span class="text-[10px] font-black text-gray-700">大路線</span>
+        </button>
+        <button class="nav-item flex flex-col items-center justify-center p-2 rounded-xl transition-all btn-strong" data-page="vote" id="nav-vote">
+            <span class="text-xl sm:text-2xl">🗳️</span><span class="text-[10px] font-black text-gray-700">抉擇池</span>
+        </button>
+        <button onclick="openPwModal()" class="flex flex-col items-center justify-center p-2 rounded-xl btn-strong">
+            <span class="text-xl sm:text-2xl">⚙️</span><span class="text-[10px] font-black text-gray-400">控制</span>
+        </button>
+    </nav>
+
+    <div id="admin-pw-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white cute-card p-5 w-full max-w-xs text-center space-y-4">
+            <h3 class="text-lg font-black text-[#2B1B17]">🔑 隊長專屬控制密碼通道</h3>
+            <input type="password" id="admin-pw-input" placeholder="請輸入密碼..." class="w-full border-4 border-[#2B1B17] rounded-xl p-2 text-center font-black text-lg">
+            <div class="flex gap-2">
+                <button onclick="checkAdminPassword()" class="flex-1 bg-[#FFDE4D] border-2 border-[#2B1B17] font-black py-2 rounded-xl text-sm btn-strong">核對進入</button>
+                <button onclick="closePwModal()" class="bg-gray-200 border-2 border-gray-400 font-black px-4 py-2 rounded-xl text-sm btn-strong">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="landscape-address-modal" class="fixed inset-0 bg-white z-50 flex-col items-center justify-center p-6 hidden text-center border-8 border-[#2B1B17]">
+        <h2 id="landscape-address-title" class="text-xl font-black text-gray-500 mb-2"></h2>
+        <p id="landscape-address-text" class="text-3xl sm:text-4xl font-black text-[#2B1B17] my-auto px-4 uppercase leading-tight select-all break-words"></p>
+        <button onclick="closeLandscapeAddress()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] rounded-2xl py-3 font-black text-xl shadow-[4px_4px_0px_0px_#2B1B17] mt-6 btn-strong">✕ 睇完喇，收返埋</button>
+    </div>
+
+    <div id="big-translate-modal" class="fixed inset-0 bg-[#E8D7FF] z-50 flex-col items-center justify-center p-6 hidden border-8 border-[#2B1B17]">
+        <span class="text-sm bg-purple-600 text-white px-3 py-1 rounded-full font-black mb-4">🇯🇵 放大日文畀日本店員睇：</span>
+        <p id="big-translate-japanese" class="text-4xl sm:text-5xl font-black text-[#2B1B17] leading-normal my-auto select-all text-center break-words"></p>
+        <p id="big-translate-cantonese" class="text-lg font-bold text-gray-600 mt-2 italic"></p>
+        <button onclick="closeBigTranslateModal()" class="w-full bg-white border-4 border-[#2B1B17] rounded-2xl py-3 font-black text-xl mt-6 btn-strong">✕ 收返埋</button>
+    </div>
+
+    <div id="gather-alert-modal" class="fullscreen-modal bg-red-600 text-white text-center border-8 border-black">
+        <div class="text-6xl sm:text-7xl animate-bounce mb-4">🚨</div>
+        <h1 class="text-3xl sm:text-4xl font-black tracking-wider animate-pulse">隊長發出全員召集令！</h1>
+        <div id="gather-alert-msg" class="bg-white text-red-600 cartoon-border p-5 rounded-2xl text-xl sm:text-2xl font-black my-6 max-w-md w-full shadow-lg break-words"></div>
+        <button onclick="dismissGatherAlert()" class="bg-black text-white border-4 border-white px-8 py-3 rounded-2xl font-black text-xl shadow-md btn-strong">🙋 收到！我依即刻衝過去！</button>
+    </div>
+
+    <div id="chicken-alarm-modal" class="fullscreen-modal bg-yellow-300 text-center border-8 border-[#2B1B17]">
+        <div class="text-8xl sm:text-9xl float-emoji">🐔</div>
+        <h1 class="text-3xl sm:text-4xl font-black text-red-600 tracking-tight mt-4">🐓 隊長奪命有聲晨呼！</h1>
+        <p id="chicken-alarm-title" class="text-lg sm:text-xl font-black text-[#2B1B17] max-w-xs mt-3 bg-white/80 p-3 rounded-xl border-2 border-[#2B1B17] break-words"></p>
+        <div class="flex gap-4 mt-8 w-full max-w-xs">
+            <button onclick="dismissChickenAlarm()" class="flex-1 bg-red-500 text-white border-4 border-[#2B1B17] py-4 rounded-2xl font-black text-lg shadow-[4px_4px_0px_0px_#2B1B17] btn-strong">🔥 我醒喇！別叫了！</button>
+            <button onclick="dismissChickenAlarm()" class="flex-1 bg-blue-500 text-white border-4 border-[#2B1B17] py-4 rounded-2xl font-black text-lg shadow-[4px_4px_0px_0px_#2B1B17] btn-strong">🙋 知喇隊長！</button>
+        </div>
+    </div>
+
+<script>
+window.onload = function() {
+    loadFromStorage();
+    initCurrencyUI();
+    renderAll();
+    loadCurrencyChecks();
+};
+
+const ADMIN_PASSWORD = '0521'; 
+
+let appState = {
+    mopToJpy: 19.6887,
+    mopToKrw: 187.9203,
+    isHideCurrency: false,
+    currentUser: "",
+    broadcast: "",
+    hotelAddress: "大阪心齋橋舒適酒店 (Comfort Hotel Osaka Shinsaibashi)",
+    hotelMapUrl: "https://maps.google.com",
+    routeEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3281.428414959419!2d135.5003541!3d34.6704648!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6000e716bc5f8b9b%3A0x6b77242c16503c51!2sComfort%20Hotel%20Osaka%20Shinsaibashi!5e0!3m2!1szh-HK!2shk!4v1710000000000!5m2!1szh-HK!2shk",
+    routeTips: "💡 隊長核心捷徑：\n地鐵御堂筋線「心齋橋站」5號或6號出口，行出嚟轉入心齋橋商店街，過兩個街口見到 FamilyMart 轉右，直行 2 分鐘就到酒店！去黑門市場就搭一個站去日本橋站下車。",
+    transportUrl: "https://maps.google.com",
+    weather: { city: "Osaka", name: "大阪", icon: "🌤️", desc: "微風宜人", temp: 21, max: 25, min: 14, humidity: 55 },
+    notices: [
+        { text: "🔋 出門記得帶外置充電器與 WiFi 蛋", done: false },
+        { text: "👟 今日行程需要大量步行，強烈建議着舒服波鞋", done: false },
+        { text: "🧥 春季早晚溫差大，夜晚出門記得帶件薄外套", done: false },
+        { text: " passport 護照同埋重要證件記得放好！", done: false }
+    ],
+    alarm: { date: "2026-05-25", time: "07:30", title: "🐾 隊長奪命大叫：起身啦喂！太陽曬到羅友喇！", triggered: false },
+    gatherOrder: { active: false, msg: "" },
+    vote: {
+        title: "🔥 今晚全團大抉擇：到底食乜好？",
+        deadline: "20:00",
+        published: false,
+        options: [
+            { text: "🇯🇵 豪華黑毛和牛燒肉", img: "🥩" },
+            { text: "🍣 本格江戶前壽司隨便飽", img: "🍣" }
+        ],
+        votesRecord: {}
+    },
+    wishes: [],
+    flights: [
+        { date: "2026-05-25", num: "CX506", terminal: "T1", time: "10:15", baggage: "📌 待公佈", showToGroup: true },
+        { date: "2026-05-31", num: "CX507", terminal: "T2", time: "18:30", baggage: "📌 待公佈", showToGroup: true }
+    ],
+    days: [
+        {
+            date: "2026-05-25",
+            visible: true,
+            items: [
+                { time: "09:00", text: "關西機場集合出發 ✈️", addr: "關西國際機場第一航廈", map: "https://maps.google.com", embed: "" },
+                { time: "12:30", text: "黑門市場品嚐海鮮地道午餐 🦀", addr: "大阪市中央區日本橋2丁目4-1", map: "https://maps.google.com", embed: "" },
+                { time: "15:00", text: "酒店 Check-in 休息放低行李 🏨", addr: "大阪心齋橋舒適酒店 (Comfort Hotel Osaka Shinsaibashi)", map: "https://maps.google.com", embed: "" },
+                { time: "18:30", text: "道頓堀散策 + 歡迎晚宴 🍜", addr: "道頓堀地標固力果跑跑人下", map: "https://maps.google.com", embed: "" }
+            ]
+        },
+        {
+            date: "2026-05-26",
+            visible: true,
+            items: [
+                { time: "09:30", text: "萬博紀念公園賞花看太陽之塔 🌸", addr: "萬博紀念公園", map: "https://maps.google.com", embed: "" },
+                { time: "13:00", text: "EXPOCITY 購物中心自由午餐購物 🛍️", addr: "EXPOCITY 購物廣場", map: "https://maps.google.com", embed: "" },
+                { time: "17:30", text: "梅田藍天大廈看絕美落日夜景 🌃", addr: "梅田藍天大廈空中庭園", map: "https://maps.google.com", embed: "" }
+            ]
+        }
+    ]
+};
+
+function loadFromStorage() {
+    const saved = localStorage.getItem('親友神App_終極完全體');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            appState = { ...appState, ...parsed };
+        } catch(e) { console.log("讀取快取記憶失敗，使用全新預設值"); }
+    }
+    const modal = document.getElementById('start-identity-modal');
+    if (appState.currentUser && appState.currentUser.trim() !== "") {
+        modal.style.display = 'none';
+    } else {
+        modal.style.display = 'flex';
+    }
+}
+
+function saveState() {
+    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
+    renderAll();
+}
+
+function saveUserIdentity(name) {
+    appState.currentUser = name;
+    saveState();
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        switchPage(this.getAttribute('data-page'));
+    });
+});
+
+function switchPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('nav-active'));
+    const targetPage = document.getElementById(`page-${pageId}`);
+    if (targetPage) targetPage.classList.add('active');
+    const targetNav = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+    if (targetNav) targetNav.classList.add('nav-active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function openPwModal() { document.getElementById('admin-pw-modal').style.display = 'flex'; }
+function closePwModal() { document.getElementById('admin-pw-modal').style.display = 'none'; document.getElementById('admin-pw-input').value=''; }
+
+function checkAdminPassword() {
+    const input = document.getElementById('admin-pw-input').value;
+    if (input === ADMIN_PASSWORD) {
+        closePwModal();
+        switchPage('admin');
+        initAdminPanelValues();
+    } else {
+        alert('❌ 密碼不正確喔！只有領隊隊長才可以進入控制室！');
+    }
+}
+
+function convertToEmojiNumbers(num) {
+    if (num === null || num === undefined || isNaN(num)) return "--";
+    const emojiMap = {
+        '0': '0️⃣', '1': '1️⃣', '2': '2️⃣', '3': '3️⃣', '4': '4️⃣',
+        '5': '5️⃣', '6': '6️⃣', '7': '7️⃣', '8': '8️⃣', '9': '9️⃣',
+        '-': '➖'
+    };
+    return String(num).split('').map(char => emojiMap[char] || char).join('');
+}
+
+function unlockIdentity() {
+    const pw = prompt("請輸入隊長密碼以變更身分：");
+    if (pw === "0521") {
+        const selectBox = document.getElementById('user-identity-select');
+        selectBox.disabled = false;
+        selectBox.classList.remove('opacity-70');
+        alert("🔓 已解鎖，現在可以變更身分了！");
+    } else {
+        alert("❌ 密碼錯誤，拒絕存取！");
+    }
+}
+
+document.getElementById('user-identity-select').addEventListener('change', function() {
+    if (!this.disabled) {
+        saveUserIdentity(this.value);
+        this.disabled = true;
+        this.classList.add('opacity-70');
+        alert('身分已更新，現已重新鎖定。');
+    }
+});
+
+function confirmIdentityFromModal() {
+    const chosenUser = document.getElementById('modal-user-select').value;
+    if (!chosenUser) { alert("請先選擇身份！"); return; }
+    const topSelect = document.getElementById('user-identity-select');
+    if (topSelect) topSelect.value = chosenUser;
+    appState.currentUser = chosenUser;
+    saveState();
+    document.getElementById('start-identity-modal').style.display = 'none';
+    alert(`歡迎登入，${chosenUser}！`);
+}
+
+async function fetchWeatherFromAPI() {
+    const city = document.getElementById('admin-weather-city').value;
+    if (!city) return;
+    const cityDataMap = {
+        "Macau": { name: "澳門", icon: "🌤️", desc: "少雲清爽", temp: 26, max: 29, min: 23, humidity: 75 },
+        "Hong Kong": { name: "香港", icon: "☀️", desc: "天晴朗", temp: 27, max: 30, min: 24, humidity: 72 },
+        "Osaka": { name: "大阪", icon: "🌤️", desc: "微風宜人", temp: 21, max: 25, min: 14, humidity: 55 },
+        "Busan": { name: "釜山", icon: "☁️", desc: "多雲偶陣雨", temp: 19, max: 22, min: 15, humidity: 80 }
+    };
+    if (cityDataMap[city]) {
+        let mock = cityDataMap[city];
+        let randomOffset = Math.floor(Math.random() * 3) - 1;
+        appState.weather = {
+            city: city, name: mock.name, icon: mock.icon, desc: mock.desc,
+            temp: mock.temp + randomOffset, max: mock.max, min: mock.min, humidity: mock.humidity + Math.floor(Math.random() * 4)
+        };
+        document.getElementById('manual-city-name').value = appState.weather.name;
+        document.getElementById('manual-weather-icon').value = appState.weather.icon;
+        document.getElementById('manual-weather-desc').value = appState.weather.desc;
+        document.getElementById('manual-temp').value = appState.weather.temp;
+        document.getElementById('manual-temp-max').value = appState.weather.max;
+        document.getElementById('manual-temp-min').value = appState.weather.min;
+        saveState();
+    }
+}
+
+function applyManualWeather() {
+    appState.weather = {
+        city: "manual",
+        name: document.getElementById('manual-city-name').value || "自訂地點",
+        icon: document.getElementById('manual-weather-icon').value || "✨",
+        desc: document.getElementById('manual-weather-desc').value || "天色宜人",
+        temp: parseInt(document.getElementById('manual-temp').value) || 22,
+        max: parseInt(document.getElementById('manual-temp-max').value) || 26,
+        min: parseInt(document.getElementById('manual-temp-min').value) || 15,
+        humidity: 60
+    };
+    saveState();
+    alert("🎯 強制手動應急天氣已全面發佈生效！");
+}
+
+function saveAdminNotices() {
+    const text = document.getElementById('admin-notice-input').value;
+    appState.notices = text.split('\n').filter(line => line.trim() !== "").map(line => {
+        const old = appState.notices.find(o => o.text === line);
+        return { text: line, done: old ? old.done : false };
+    });
+    saveState();
+    alert("💾 出門大考驗提示清單儲存成功！");
+}
+
+function saveCoreRouteSettings() {
+    appState.routeEmbedUrl = document.getElementById('admin-route-embed-url').value;
+    appState.routeTips = document.getElementById('admin-route-tips-input').value;
+    appState.transportUrl = document.getElementById('admin-transport-url').value;
+    saveState();
+    alert("🏨 大路線嵌入地圖與隊長出口提示錦囊已發佈生效！");
+}
+
+function toggleNoticeItem(idx) {
+    appState.notices[idx].done = !appState.notices[idx].done;
+    saveState();
+}
+
+function renderAll() {
+    document.getElementById('user-identity-select').value = appState.currentUser;
+    const bBox = document.getElementById('live-broadcast-box');
+    if (appState.broadcast && appState.broadcast.trim() !== "") {
+        document.getElementById('live-broadcast-text').innerText = appState.broadcast;
+        bBox.classList.remove('hidden');
+    } else {
+        bBox.classList.add('hidden');
+    }
+    const now = new Date();
+    const currentDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const todayFlight = appState.flights.find(f => f.date === currentDateStr && f.showToGroup);
+    const flightBanner = document.getElementById('live-flight-banner');
+    if (todayFlight) {
+        document.getElementById('flight-tag-date').innerText = todayFlight.date;
+        document.getElementById('flight-num').innerText = todayFlight.num;
+        document.getElementById('flight-terminal').innerText = todayFlight.terminal;
+        document.getElementById('flight-time').innerText = todayFlight.time;
+        document.getElementById('flight-baggage').innerText = todayFlight.baggage;
+        flightBanner.classList.remove('hidden');
+    } else {
+        flightBanner.classList.add('hidden');
+    }
+    document.getElementById('weather-location').innerText = appState.weather.name;
+    document.getElementById('weather-icon').innerText = appState.weather.icon;
+    document.getElementById('bg-weather-emoji').innerText = appState.weather.icon;
+    document.getElementById('weather-desc').innerText = appState.weather.desc;
+    document.getElementById('weather-temp').innerHTML = `${convertToEmojiNumbers(appState.weather.temp)} <span class="text-sm font-black text-gray-800">°C</span>`;
+    document.getElementById('weather-temp-max').innerHTML = `${convertToEmojiNumbers(appState.weather.max)} <span class="text-xs">°C</span>`;
+    document.getElementById('weather-temp-min').innerHTML = `${convertToEmojiNumbers(appState.weather.min)} <span class="text-xs">°C</span>`;
+    document.getElementById('weather-humidity').innerText = `${appState.weather.humidity}%`;
+    const noticeContainer = document.getElementById('notice-list');
+    noticeContainer.innerHTML = appState.notices.map((n, idx) => `
+        <div onclick="toggleNoticeItem(${idx})" class="bg-white border-2 border-[#2B1B17] rounded-xl px-3 py-2.5 shadow-sm font-black text-sm cursor-pointer transition-all flex items-center gap-2 ${n.done ? 'notice-done' : ''}">
+            <span>${n.done ? '✅' : '💡'}</span>
+            <span class="flex-1 break-words">${n.text}</span>
+        </div>
+    `).join('');
+    document.getElementById('core-route-embed-box').innerHTML = `<iframe src="${appState.routeEmbedUrl}" class="w-full h-full border-0" allowfullscreen="" loading="lazy"></iframe>`;
+    document.getElementById('route-tips-display').innerText = appState.routeTips || "暫無隊長出口路線提示。";
+    document.getElementById('transport-route-link').href = appState.transportUrl;
+    document.getElementById('vote-title').innerText = appState.vote.title;
+    document.getElementById('vote-deadline-display').innerText = appState.vote.deadline || "未設定";
+    let option0Votes = 0; let option1Votes = 0;
+    Object.values(appState.vote.votesRecord).forEach(v => { if (v === 0) option0Votes++; if (v === 1) option1Votes++; });
+const vContainer = document.getElementById('vote-options-container');
+const userChoice = appState.vote.votesRecord[appState.currentUser];
+// 只有開啟投票 OR 公佈結果，先顯示選項；未開啟就顯示「暫未開啟」
+if (appState.vote.open || appState.vote.published) {
+    vContainer.innerHTML = appState.vote.options.map((opt, idx) => {
+        const isSelected = userChoice === idx;
+        return `
+            <div onclick="castVote(${idx})" class="cute-card m-0 flex flex-col items-center justify-center p-4 cursor-pointer border-4 transition-all ${isSelected ? 'bg-[#FFDE4D] border-[#2B1B17] scale-105 shadow-[4px_4px_0px_0px_#2B1B17]' : 'bg-white border-gray-300'}" style="margin:0 !important;">
+                <div class="text-5xl sm:text-6xl my-2">${opt.img || '🍢'}</div>
+                <div class="text-sm sm:text-base font-black text-center mt-1 text-[#2B1B17] leading-tight break-words">${opt.text}</div>
+                ${isSelected ? '<span class="text-xs bg-[#2B1B17] text-white px-2 py-0.5 rounded-full mt-2 font-bold">你投了這票 🌟</span>' : ''}
+            </div>
+        `;
+    }).join('');
+} else {
+    vContainer.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-6 text-sm">🔒 投票暫未開啟，請等待隊長發起</div>';
+}
+    let op0Names = [], op1Names = [];
+    Object.entries(appState.vote.votesRecord).forEach(([name, choice]) => { if (choice === 0) op0Names.push(name); if (choice === 1) op1Names.push(name); });
+    document.getElementById('admin-vote-radar-box').innerHTML = `
+        <span class="text-blue-600">【${appState.vote.options[0].text}】</span>: <strong>${option0Votes} 票</strong> <span class="text-gray-400 font-normal">(${op0Names.join(', ') || '冇人投'})</span><br>
+        <span class="text-purple-600">【${appState.vote.options[1].text}】</span>: <strong>${option1Votes} 票</strong> <span class="text-gray-400 font-normal">(${op1Names.join(', ') || '冇人投'})</span>
+    `;
+    const resultSec = document.getElementById('vote-result-section');
+    if (appState.vote.published) {
+        resultSec.classList.remove('hidden');
+        const total = option0Votes + option1Votes || 1;
+        const p1 = Math.round((option0Votes / total) * 100), p2 = 100 - p1;
+        document.getElementById('vote-bars-container').innerHTML = `
+            <div><div class="flex justify-between text-xs font-black mb-1 text-gray-700"><span>${appState.vote.options[0].img} ${appState.vote.options[0].text}</span> <span>${p1}% (${option0Votes}票)</span></div><div class="w-full bg-gray-200 rounded-full h-6 border-2 border-[#2B1B17] overflow-hidden"><div class="bg-[#FF8B8B] h-full rounded-full transition-all" style="width: ${p1}%"></div></div></div>
+            <div><div class="flex justify-between text-xs font-black mb-1 text-gray-700"><span>${appState.vote.options[1].img} ${appState.vote.options[1].text}</span> <span>${p2}% (${option1Votes}票)</span></div><div class="w-full bg-gray-200 rounded-full h-6 border-2 border-[#2B1B17] overflow-hidden"><div class="bg-[#B4F8C8] h-full rounded-full transition-all" style="width: ${p2}%"></div></div></div>
+        `;
+    } else resultSec.classList.add('hidden');
+    document.getElementById('admin-wishes-box').innerHTML = appState.wishes.map(w => `<div>🔮 <strong>${w.user || '匿名'}:</strong> ${w.text}</div>`).join('') || "目前許願池空空如也～";
+    const gatherModal = document.getElementById('gather-alert-modal');
+    if (appState.gatherOrder && appState.gatherOrder.active) {
+        document.getElementById('gather-alert-msg').innerText = appState.gatherOrder.msg;
+        gatherModal.style.display = 'flex';
+        if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 600, 200, 400]);
+    } else gatherModal.style.display = 'none';
+    calculateLiveAndNextItinerary();
+    renderDaySelectorDropdown();
+    initExchangeRateUI();
+}
+
+function calculateLiveAndNextItinerary() {
+    const now = new Date();
+    const currentDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const currentTimeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    let currentSpot = null, nextSpot = null;
+    const todayData = appState.days.find(d => d.date === currentDateStr);
+    if (todayData && todayData.items && todayData.items.length > 0) {
+        const sortedItems = [...todayData.items].sort((a,b) => a.time.localeCompare(b.time));
+        for (let i = 0; i < sortedItems.length; i++) {
+            if (currentTimeStr >= sortedItems[i].time) {
+                currentSpot = sortedItems[i];
+                if (i + 1 < sortedItems.length) nextSpot = sortedItems[i+1];
+            }
+        }
+        if (!currentSpot && sortedItems.length > 0) nextSpot = sortedItems[0];
+    }
+    if (currentSpot) {
+        document.getElementById('current-itinerary').innerHTML = `<span class="bg-[#2B1B17] text-white px-2 py-0.5 rounded-lg text-sm mr-1 border">${currentSpot.time}</span> ${currentSpot.text}`;
+        document.getElementById('current-spot-address-text').innerText = currentSpot.addr || "未填寫地點詳細地址";
+        document.getElementById('current-spot-address-hidden').value = currentSpot.addr || "未填寫地點詳細地址";
+        document.getElementById('current-spot-map-link').href = currentSpot.map || "#";
+        const embedBox = document.getElementById('itinerary-map-html-box');
+        const embedContainer = document.getElementById('itinerary-map-embed-container');
+        if (currentSpot.embed && currentSpot.embed.trim() !== "") {
+            embedBox.innerHTML = currentSpot.embed;
+            embedContainer.classList.remove('hidden');
+        } else embedContainer.classList.add('hidden');
+    } else {
+        document.getElementById('current-spot-address-text').innerText = appState.hotelAddress;
+        document.getElementById('current-spot-address-hidden').value = appState.hotelAddress;
+        document.getElementById('current-spot-map-link').href = appState.hotelMapUrl;
+        document.getElementById('itinerary-map-embed-container').classList.add('hidden');
+    }
+    if (nextSpot) document.getElementById('next-itinerary').innerHTML = `<span class="bg-gray-400 text-white px-2 py-0.5 rounded-lg text-sm mr-1">${nextSpot.time}</span> ${nextSpot.text}`;
+    else document.getElementById('next-itinerary').innerText = "🏁 今日後續已無大型群組集合排程，預祝今晚好眠！";
+}
+
+function renderDaySelectorDropdown() {
+    const select = document.getElementById('itinerary-day-select');
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">-- 請選擇天數 --</option><option value="all">顯示全部天數大明細</option>';
+    appState.days.forEach((day, idx) => {
+        if (day.visible) {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `Day ${idx+1} (${day.date})`;
+            select.appendChild(opt);
+        }
+    });
+    if (currentVal) select.value = currentVal;
+    showSingleDaySchedule();
+}
+
+function showSingleDaySchedule() {
+    const val = document.getElementById('itinerary-day-select').value;
+    const box = document.getElementById('single-day-schedule-box');
+    box.innerHTML = "";
+    if (!val) return;
+    let daysToRender = [];
+    if (val === "all") daysToRender = appState.days.map((d, i) => ({ dayData: d, index: i })).filter(d => d.dayData.visible);
+    else { const idx = parseInt(val); if (appState.days[idx]) daysToRender.push({ dayData: appState.days[idx], index: idx }); }
+    daysToRender.forEach(pack => {
+        let dayHtml = `<div class="border-4 border-[#2B1B17] rounded-2xl p-3 bg-white mb-1 shadow-sm"><h4 class="text-base font-black text-[#FF8B8B] border-b-2 border-dashed border-[#2B1B17] pb-1 mb-2">🌟 Day ${pack.index + 1} 時間明細表 (${pack.dayData.date})</h4><div class="flex flex-col gap-2">`;
+        if (!pack.dayData.items || pack.dayData.items.length === 0) dayHtml += `<p class="text-xs font-bold text-gray-400 text-center py-2">隊長還沒有寫這一天的行程內容喔～</p>`;
+        else {
+            const sorted = [...pack.dayData.items].sort((a,b) => a.time.localeCompare(b.time));
+            sorted.forEach(item => {
+                dayHtml += `<div class="bg-gray-50 border-2 border-[#2B1B17] p-2 rounded-xl text-xs flex flex-col gap-1"><div class="flex items-center gap-1.5"><span class="bg-[#2B1B17] text-white px-1.5 py-0.5 rounded font-black text-[10px]">${item.time}</span><span class="font-black text-[#2B1B17] text-sm break-words">${item.text}</span></div>${item.addr ? `<div class="text-[11px] text-gray-500 font-bold pl-1 break-words">📍 地址: ${item.addr}</div>` : ''}</div>`;
+            });
+        }
+        dayHtml += `</div></div>`;
+        box.innerHTML += dayHtml;
+    });
+}
+
+function castVote(idx) {
+    if (!appState.currentUser) { alert("⚠️ 投票前請先在首頁最頂認領你是誰喔！否則隊長不知道是誰已投票。"); return; }
+    appState.vote.votesRecord[appState.currentUser] = idx;
+    saveState();
+}
+
+function submitUserWish() {
+    const input = document.getElementById('user-wish-input');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!appState.currentUser) {
+        alert("⚠️ 許願前請先在首頁最頂認領你的名字喔！");
+        return;
+    }
+    appState.wishes.push({ user: appState.currentUser, text: text });
+    input.value = "";
+    saveState();
+    alert("🎋 願望已寫入竹籤，即時飛向隊長控制室！祝你願望成真！");
+}
+
+// 全螢幕大地址彈窗
+function openLandscapeAddress(text, title) {
+    document.getElementById('landscape-address-title').innerText = title || "📍 目的地詳細地址";
+    document.getElementById('landscape-address-text').innerText = text || "未填寫完整地址";
+    document.getElementById('landscape-address-modal').style.display = 'flex';
+}
+function closeLandscapeAddress() { document.getElementById('landscape-address-modal').style.display = 'none'; }
+
+// 音效系統
+let audioCtx = null;
+function initAudioEngine() {
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        document.getElementById('audio-unlock-bar').style.display = 'none';
+        alert("🔊 喇叭音效通道解鎖成功！當隊長定時晨呼或發出召集令時，手機將會響起警報！");
+    } catch(e) { alert("瀏覽器音效解鎖失敗，請再點擊一次試試"); }
+}
+
+function playAlarmSoundLoop() {
+    if (!audioCtx) return;
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    osc.start();
+    let timer = setInterval(() => {
+        osc.frequency.setValueAtTime(osc.frequency.value === 880 ? 587 : 880, audioCtx.currentTime);
+    }, 120);
+    window.activeOscillator = osc;
+    window.activeOscTimer = timer;
+}
+
+function stopAlarmSoundLoop() {
+    if (window.activeOscillator) {
+        try { window.activeOscillator.stop(); } catch(e){}
+        clearInterval(window.activeOscTimer);
+        window.activeOscillator = null;
+    }
+}
+
+// 集合 / 鬧鐘
+function adminSendGatherOrder() {
+    const msg = document.getElementById('admin-gather-msg').value;
+    appState.gatherOrder = { active: true, msg: msg };
+    saveState();
+    playAlarmSoundLoop();
+    alert("🔥 已引爆發射全團大集合緊急強烈震動召集令！");
+}
+
+function dismissGatherAlert() {
+    stopAlarmSoundLoop();
+    appState.gatherOrder.active = false;
+    document.getElementById('gather-alert-modal').style.display = 'none';
+}
+
+function adminTriggerAlarmNow() {
+    appState.alarm.triggered = true;
+    saveState();
+    playAlarmSoundLoop();
+    alert(`🐔 已向全球全團親友手機立刻引爆「${appState.alarm.title}」立體晨呼！`);
+}
+
+function dismissChickenAlarm() {
+    stopAlarmSoundLoop();
+    document.getElementById('chicken-alarm-modal').style.display = 'none';
+}
+
+// 定時偵測鬧鐘
+setInterval(() => {
+    if (!appState.alarm.time || !appState.alarm.date) return;
+    const now = new Date();
+    const curDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const curTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    if (curDate === appState.alarm.date && curTime === appState.alarm.time && !appState.alarm.triggered) {
+        appState.alarm.triggered = true;
+        localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
+        document.getElementById('chicken-alarm-title').innerText = appState.alarm.title;
+        document.getElementById('chicken-alarm-modal').style.display = 'flex';
+        if (navigator.vibrate) navigator.vibrate([600, 300, 600, 300, 900]);
+        playAlarmSoundLoop();
+    }
+    if (curTime !== appState.alarm.time && appState.alarm.triggered) {
+        appState.alarm.triggered = false;
+        localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
+    }
+}, 1000);
+
+// 後台初始化
+function initAdminPanelValues() {
+    document.getElementById('admin-broadcast-input').value = appState.broadcast;
+    document.getElementById('admin-alarm-date').value = appState.alarm.date;
+    document.getElementById('admin-alarm-time').value = appState.alarm.time;
+    document.getElementById('admin-alarm-title').value = appState.alarm.title;
+    document.getElementById('admin-route-embed-url').value = appState.routeEmbedUrl;
+    document.getElementById('admin-route-tips-input').value = appState.routeTips;
+    document.getElementById('admin-transport-url').value = appState.transportUrl;
+    document.getElementById('admin-vote-title').value = appState.vote.title;
+    document.getElementById('admin-opt0-img').value = appState.vote.options[0].img;
+    document.getElementById('admin-opt0-text').value = appState.vote.options[0].text;
+    document.getElementById('admin-opt1-img').value = appState.vote.options[1].img;
+    document.getElementById('admin-opt1-text').value = appState.vote.options[1].text;
+    document.getElementById('admin-vote-deadline').value = appState.vote.deadline;
+    document.getElementById('admin-notice-input').value = appState.notices.map(n => n.text).join('\n');
+    renderAdminFlightsList(); 
+    renderAdminDaysConfigList();
+    initCurrencyUI();
+    loadCurrencyChecks();
+}
+
+function adminPublishBroadcast() {
+    appState.broadcast = document.getElementById('admin-broadcast-input').value;
+    saveState();
+    alert("🚀 即時重要廣播已成功發射到全體團員首頁頂部！");
+}
+
+function adminClearBroadcast() {
+    appState.broadcast = "";
+    document.getElementById('admin-broadcast-input').value = "";
+    saveState();
+    alert("❌ 廣播已成功撤銷清除。");
+}
+
+function adminSaveAlarmSettings() {
+    appState.alarm.date = document.getElementById('admin-alarm-date').value;
+    appState.alarm.time = document.getElementById('admin-alarm-time').value;
+    appState.alarm.title = document.getElementById('admin-alarm-title').value;
+    saveState();
+    alert("⏰ 奪命定時晨呼時間與對白已成功排產定時！");
+}
+
+function adminPublishVoteResults() {
+    appState.vote.open = false;
+    appState.vote.published = true;
+    saveState();
+    alert("📢 投票已結束，正式公佈結果！");
+}
+
+function adminResetVoteSystem() {
+    if (confirm("⚠️ 確定要洗牌重置、將全團所有人投出的票數全部清空嗎？")) {
+        appState.vote.published = false;
+        appState.vote.votesRecord = {};
+        saveState();
+        initAdminPanelValues();
+        alert("🔄 投票箱已清空洗牌！大家可以重新選過喇。");
+    }
+}
+
+function adminClearAllWishes() {
+    if (confirm("⚠️ 確定要清空所有親友發來的願望竹籤嗎？")) {
+        appState.wishes = [];
+        saveState();
+        initAdminPanelValues();
+    }
+}
+
+// 航班
+function renderAdminFlightsList() {
+    const box = document.getElementById('admin-flights-list');
+    box.innerHTML = appState.flights.map((f, idx) => `
+        <div class="bg-white p-2 border rounded-lg text-[11px] flex flex-col gap-1 shadow-sm">
+            <div class="flex gap-1 items-center">
+                <input type="date" value="${f.date}" class="border font-bold p-0.5 rounded" onchange="updateFlightField(${idx}, 'date', this.value)">
+                <input type="text" value="${f.num}" placeholder="航班" class="w-14 border font-bold p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'num', this.value)">
+                <label class="flex items-center gap-0.5 text-[10px]">
+                    <input type="checkbox" ${f.showToGroup ? 'checked' : ''} onchange="updateFlightField(${idx}, 'showToGroup', this.checked)">顯示
+                </label>
+                <button onclick="adminDeleteFlight(${idx})" class="bg-red-500 text-white font-black px-1 rounded ml-auto">✕</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1">
+                <input type="text" value="${f.terminal}" placeholder="航廈" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'terminal', this.value)">
+                <input type="time" value="${f.time}" class="border p-0.5 rounded" onchange="updateFlightField(${idx}, 'time', this.value)">
+                <input type="text" value="${f.baggage}" placeholder="行李盤" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'baggage', this.value)">
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateFlightField(idx, field, val) { 
+    appState.flights[idx][field] = val; 
+    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
+}
+function adminAddNewFlightSlot() { 
+    appState.flights.push({ date: "2026-05-25", num: "CX000", terminal: "T1", time: "12:00", baggage: "待公佈", showToGroup:true }); 
+    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
+    renderAdminFlightsList(); 
+}
+function adminDeleteFlight(idx) { 
+    appState.flights.splice(idx, 1); 
+    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
+    renderAdminFlightsList(); 
+}
+
+// ========== 後台行程（重點：加咗刪除 Day 按鈕）==========
+function renderAdminDaysConfigList() {
+    const container = document.getElementById('admin-days-list-container');
+    container.innerHTML = "";
+    appState.days.forEach((day, dIdx) => {
+        let dayBox = document.createElement('div');
+        dayBox.className = "border-2 border-[#2B1B17] rounded-xl p-2 bg-white shadow-sm flex flex-col gap-1.5";
+        let headerHtml = `
+            <div class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg border">
+                <span class="font-black text-xs">📅 Day ${dIdx+1} 日期:</span>
+                <input type="date" value="${day.date}" class="border rounded px-1 font-bold text-xs" onchange="updateDayDateConfig(${dIdx}, this.value)">
+                <label class="flex items-center gap-0.5 text-xs font-black text-emerald-700">
+                    <input type="checkbox" ${day.visible ? 'checked' : ''} onchange="toggleDayVisibilityConfig(${dIdx}, this.checked)"> 解鎖
+                </label>
+                <button onclick="deleteWholeDay(${dIdx})" class="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-lg font-black btn-strong">🗑️ 刪除本日</button>
+            </div>
+            <div class="flex flex-col gap-1.5 mt-1">
+        `;
+        if (day.items && day.items.length > 0) {
+            day.items.forEach((item, iIdx) => {
+                headerHtml += `
+                    <div class="bg-gray-50/50 p-1.5 rounded-lg border border-dashed text-xs flex flex-col gap-1">
+                        <div class="flex gap-1 items-center">
+                            <input type="time" value="${item.time}" class="border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'time', this.value)">
+                            <input type="text" value="${item.text}" placeholder="行程內容" class="flex-1 border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'text', this.value)">
+                            <button class="bg-red-500 text-white px-1.5 py-0.5 rounded font-black text-[10px] btn-strong" onclick="deleteItemConfig(${dIdx}, ${iIdx})">✕</button>
+                        </div>
+                        <input type="text" value="${item.addr || ''}" placeholder="詳細地址 (For司機放大全螢幕)" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'addr', this.value)">
+                        <input type="text" value="${item.map || ''}" placeholder="Google Maps 跳轉導航連結" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'map', this.value)">
+                        <input type="text" value="${item.embed || ''}" placeholder="Google 地圖 iframe 嵌入碼碼 (選填)" class="w-full border rounded p-0.5 text-[10px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'embed', this.value)">
+                    </div>
+                `;
+            });
+        }
+        headerHtml += `
+            </div>
+            <button class="bg-gray-100 border rounded-lg py-1 text-[11px] font-black mt-1 btn-strong" onclick="adminAddNewItemToDayConfig(${dIdx})">+ 為 Day ${dIdx+1} 增加新時間軸項目</button>
+        `;
+        dayBox.innerHTML = headerHtml;
+        container.appendChild(dayBox);
+    });
+}
+
+// 新增：刪除完整一天行程
+function deleteWholeDay(dIdx) {
+    if(confirm(`⚠️ 確定要刪除 Day ${dIdx+1} 成整日行程？無法復原！`)){
+        appState.days.splice(dIdx,1);
+        saveState();
+        renderAdminDaysConfigList();
+    }
+}
+
+function updateDayDateConfig(dIdx, val) { appState.days[dIdx].date = val; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
+function toggleDayVisibilityConfig(dIdx, checked) { appState.days[dIdx].visible = checked; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
+function updateItemFieldConfig(dIdx, iIdx, field, val) { appState.days[dIdx].items[iIdx][field] = val; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
+function adminAddNewDayConfig() { let nextDay = appState.days.length + 1; appState.days.push({ date: `2026-05-${24 + nextDay}`, visible: true, items: [{ time: "10:00", text: `Day ${nextDay} 愉快集合出發 🌟`, addr: "", map: "", embed: "" }] }); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
+function adminAddNewItemToDayConfig(dIdx) { appState.days[dIdx].items.push({ time: "12:00", text: "新景點行程", addr: "", map: "", embed: "" }); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
+function deleteItemConfig(dIdx, iIdx) { appState.days[dIdx].items.splice(iIdx, 1); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
+
+function adminSaveAndPushAllItineraries() {
+    saveState();
+    alert("📅 全體 7 天日程明細表、詳細地址及導航地圖已全面連動發佈！");
+}
+
+// ==================== 全新三幣互算核心邏輯 ====================
+const mopInput = document.getElementById('mopInput');
+const jpyInput = document.getElementById('jpyInput');
+const krwInput = document.getElementById('krwInput');
+const currencyCard = document.getElementById('currency-card');
+
+// 匯率初始化UI
+function initCurrencyUI() {
+    document.getElementById('admin-mop-jpy').value = appState.mopToJpy;
+    document.getElementById('admin-mop-krw').value = appState.mopToKrw;
+    document.getElementById('hideCurrencyToggle').checked = appState.isHideCurrency;
+    currencyCard.style.display = appState.isHideCurrency ? 'none' : 'block';
+}
+
+// MOP輸入 → 自動算JPY、KRW
+mopInput.addEventListener('input', () => {
+    const mop = parseFloat(mopInput.value) || 0;
+    jpyInput.value = (mop * appState.mopToJpy).toFixed(2);
+    krwInput.value = (mop * appState.mopToKrw).toFixed(2);
+});
+
+// JPY輸入 → 自動算MOP、KRW
+jpyInput.addEventListener('input', () => {
+    const jpy = parseFloat(jpyInput.value) || 0;
+    const mop = jpy / appState.mopToJpy;
+    mopInput.value = mop.toFixed(2);
+    krwInput.value = (mop * appState.mopToKrw).toFixed(2);
+});
+
+// KRW輸入 → 自動算MOP、JPY
+krwInput.addEventListener('input', () => {
+    const krw = parseFloat(krwInput.value) || 0;
+    const mop = krw / appState.mopToKrw;
+    mopInput.value = mop.toFixed(2);
+    jpyInput.value = (mop * appState.mopToJpy).toFixed(2);
+});
+
+// 後台儲存匯率
+function saveAllCurrencyRate() {
+    const mopJpy = parseFloat(document.getElementById('admin-mop-jpy').value);
+    const mopKrw = parseFloat(document.getElementById('admin-mop-krw').value);
+    if (!mopJpy || !mopKrw || mopJpy <=0 || mopKrw <=0) { alert("請輸入有效匯率！"); return; }
+    appState.mopToJpy = mopJpy;
+    appState.mopToKrw = mopKrw;
+    saveState();
+    initCurrencyUI();
+    mopInput.value = ''; jpyInput.value = ''; krwInput.value = '';
+    alert("💱 匯率設定已儲存！");
+}
+
+// 一鍵隱藏/顯示整個匯率模塊
+function toggleCurrencyCard() {
+    appState.isHideCurrency = document.getElementById('hideCurrencyToggle').checked;
+    currencyCard.style.display = appState.isHideCurrency ? 'none' : 'block';
+    saveState();
+}
+
+// 單獨貨幣開關：只讀取、唔綁定即時onchange
+function updateCurrencyDisplay() {
+    if(!document.getElementById('showMop')) return;
+    const mopBox = document.getElementById('currency-mop');
+    const jpyBox = document.getElementById('currency-jpy');
+    const krwBox = document.getElementById('currency-krw');
+    const showMop = document.getElementById('showMop').checked;
+    const showJpy = document.getElementById('showJpy').checked;
+    const showKrw = document.getElementById('showKrw').checked;
+
+    mopBox.style.display = showMop ? 'flex' : 'none';
+    jpyBox.style.display = showJpy ? 'flex' : 'none';
+    krwBox.style.display = showKrw ? 'flex' : 'none';
+
+    localStorage.setItem('showMop', showMop);
+    localStorage.setItem('showJpy', showJpy);
+    localStorage.setItem('showKrw', showKrw);
+}
+
+// 進入後台時才執行一次
+function loadCurrencyChecks() {
+    if(!document.getElementById('showMop')) return;
+    document.getElementById('showMop').checked = localStorage.getItem('showMop') !== 'false';
+    document.getElementById('showJpy').checked = localStorage.getItem('showJpy') !== 'false';
+    document.getElementById('showKrw').checked = localStorage.getItem('showKrw') !== 'false';
+    updateCurrencyDisplay();
+}
+// 開啟投票：所有人可以投票、唔顯示結果
+function adminOpenVote() {
+    // 開啟投票即時讀取後台輸入嘅標題、選項、截單
+    appState.vote.title = document.getElementById('admin-vote-title').value.trim() || appState.vote.title;
+    appState.vote.options[0].img = document.getElementById('admin-opt0-img').value.trim() || appState.vote.options[0].img;
+    appState.vote.options[0].text = document.getElementById('admin-opt0-text').value.trim() || appState.vote.options[0].text;
+    appState.vote.options[1].img = document.getElementById('admin-opt1-img').value.trim() || appState.vote.options[1].img;
+    appState.vote.options[1].text = document.getElementById('admin-opt1-text').value.trim() || appState.vote.options[1].text;
+    appState.vote.deadline = document.getElementById('admin-vote-deadline').value.trim() || appState.vote.deadline;
+
+    appState.vote.open = true;
+    appState.vote.published = false;
+    saveState();
+    alert("🗳️ 投票已開啟！大家可以開始投票，暫不顯示結果");
+}
+// 修改原本發布結果：關閉投票 + 顯示結果
+function adminPublishVoteResults() {
+    appState.vote.open = false;
+    appState.vote.published = true;
+    appState.vote.title = document.getElementById('admin-vote-title').value;
+    appState.vote.options[0].img = document.getElementById('admin-opt0-img').value;
+    appState.vote.options[0].text = document.getElementById('admin-opt0-text').value;
+    appState.vote.options[1].img = document.getElementById('admin-opt1-img').value;
+    appState.vote.options[1].text = document.getElementById('admin-opt1-text').value;
+    appState.vote.deadline = document.getElementById('admin-vote-deadline').value;
+    saveState();
+    alert("📢 投票已結束，正式公佈結果！");
+}
+
+// 補齊 initAdminPanelValues 重載
+const oldInitAdmin = initAdminPanelValues;
+initAdminPanelValues = function(){
+    oldInitAdmin();
+    loadCurrencyChecks();
+}
+</script>
+</body>
+</html>
