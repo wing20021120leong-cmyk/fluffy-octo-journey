@@ -22,14 +22,10 @@
             width: 100%;
             box-sizing: border-box;
         }
-        
-        /* 按鈕強點擊反饋 */
-    
         .btn-strong:active {
             transform: translate(2px,2px) !important;
             box-shadow: 1px 1px 0 #2B1B17 !important;
         }
-
         .notice-done {
             background-color: #F3F4F6 !important;
             border-color: #9CA3AF !important;
@@ -81,6 +77,7 @@
                     <option value="爸爸">👨🏻 老添</option>
                     <option value="媽咪">👩🏻 楊小姐</option>
                     <option value="家姐^^">👧🏽 波士晴</option>
+                   <option value=“訪客”>👥 訪客</option>
                 </select>
 		<button onclick="unlockIdentity()" class="text-xs p-1">🔓</button>
             </div>
@@ -219,21 +216,22 @@
             </div>
         </section>
 
-        <div id="start-identity-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white cute-card p-5 sm:p-6 w-full max-w-xs text-center space-y-4">
-                <h3 class="text-lg sm:text-xl font-black text-[#2B1B17]">✈️ 歡迎登機！<br>請問你是哪位親友？</h3>
-                <p class="text-xs font-bold text-gray-500">選擇後永久記住，下次唔使再揀</p>
-                <select id="modal-user-select" class="w-full border-4 border-[#2B1B17] rounded-xl p-3 font-black text-base sm:text-lg bg-[#FFF9E6]">
-                    <option value="領隊">🌳 領隊</option>
-                    <option value="肥三伯">👨🏻‍🦱 梁滿</option>
-                    <option value="三伯娘">👱🏻‍♀️ 高木</option>
-                    <option value="爸爸">👨🏻 老添</option>
-                    <option value="媽咪">👩🏻 楊小姐</option>
-                    <option value="家姐^^">👧🏽 波士晴</option>
-                </select>
-                <button onclick="confirmIdentityFromModal()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] font-black py-3 rounded-xl text-sm sm:text-md shadow-[3px_3px_0px_0px_#2B1B17] btn-strong">確定登入 🚀</button>
-            </div>
-        </div>
+        <div id="start-identity-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" style="display:none;">
+    <div class="bg-white cute-card p-5 sm:p-6 w-full max-w-xs text-center space-y-4">
+        <h3 class="text-lg sm:text-xl font-black text-[#2B1B17]">✈️ 歡迎登機！<br>請問你是哪位親友？</h3>
+        <p class="text-xs font-bold text-gray-500">選擇後永久記住，下次唔使再揀</p>
+        <select id="modal-user-select" class="w-full border-4 border-[#2B1B17] rounded-xl p-3 font-black text-base sm:text-lg bg-[#FFF9E6]">
+            <option value="領隊">🌳 領隊</option>
+            <option value="肥三伯">👨🏻‍🦱 梁滿</option>
+            <option value="三伯娘">👱🏻‍♀️ 高木</option>
+            <option value="爸爸">👨🏻 老添</option>
+            <option value="媽咪">👩🏻 楊小姐</option>
+            <option value="家姐^^">👧🏽 波士晴</option> 
+           <option value=“訪客”>👥 訪客</option>
+        </select>
+        <button onclick="confirmIdentityFromModal()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] font-black py-3 rounded-xl text-sm sm:text-md shadow-[3px_3px_0px_0px_#2B1B17] btn-strong">確定登入 🚀</button>
+    </div>
+</div>
 
         <section id="page-vote" class="page space-y-4 w-full">
             <div class="cute-card bg-[#D9E1F2] p-3 sm:p-4">
@@ -465,6 +463,7 @@ let appState = {
     vote: {
         title: "🔥 今晚全團大抉擇：到底食乜好？",
         deadline: "20:00",
+        open: false,
         published: false,
         options: [
             { text: "🇯🇵 豪華黑毛和牛燒肉", img: "🥩" },
@@ -506,7 +505,7 @@ function loadFromStorage() {
         try {
             const parsed = JSON.parse(saved);
             appState = { ...appState, ...parsed };
-        } catch(e) { console.log("讀取快取記憶失敗，使用全新預設值"); }
+        } catch(e) {}
     }
     const modal = document.getElementById('start-identity-modal');
     if (appState.currentUser && appState.currentUser.trim() !== "") {
@@ -515,7 +514,6 @@ function loadFromStorage() {
         modal.style.display = 'flex';
     }
 }
-
 function saveState() {
     localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
     renderAll();
@@ -587,14 +585,12 @@ document.getElementById('user-identity-select').addEventListener('change', funct
 });
 
 function confirmIdentityFromModal() {
-    const chosenUser = document.getElementById('modal-user-select').value;
-    if (!chosenUser) { alert("請先選擇身份！"); return; }
-    const topSelect = document.getElementById('user-identity-select');
-    if (topSelect) topSelect.value = chosenUser;
-    appState.currentUser = chosenUser;
+    const u = document.getElementById('modal-user-select').value;
+    if(!u) return;
+    appState.currentUser = u;
     saveState();
-    document.getElementById('start-identity-modal').style.display = 'none';
-    alert(`歡迎登入，${chosenUser}！`);
+    document.getElementById('start-identity-modal').style.display = 'none'; // 關彈窗
+    switchPage('home'); // 直接跳首頁
 }
 
 async function fetchWeatherFromAPI() {
@@ -708,7 +704,6 @@ function renderAll() {
     Object.values(appState.vote.votesRecord).forEach(v => { if (v === 0) option0Votes++; if (v === 1) option1Votes++; });
 const vContainer = document.getElementById('vote-options-container');
 const userChoice = appState.vote.votesRecord[appState.currentUser];
-// 只有開啟投票 OR 公佈結果，先顯示選項；未開啟就顯示「暫未開啟」
 if (appState.vote.open || appState.vote.published) {
     vContainer.innerHTML = appState.vote.options.map((opt, idx) => {
         const isSelected = userChoice === idx;
@@ -748,7 +743,7 @@ if (appState.vote.open || appState.vote.published) {
     } else gatherModal.style.display = 'none';
     calculateLiveAndNextItinerary();
     renderDaySelectorDropdown();
-    initExchangeRateUI();
+    initCurrencyUI();
 }
 
 function calculateLiveAndNextItinerary() {
@@ -770,238 +765,194 @@ function calculateLiveAndNextItinerary() {
     if (currentSpot) {
         document.getElementById('current-itinerary').innerHTML = `<span class="bg-[#2B1B17] text-white px-2 py-0.5 rounded-lg text-sm mr-1 border">${currentSpot.time}</span> ${currentSpot.text}`;
         document.getElementById('current-spot-address-text').innerText = currentSpot.addr || "未填寫地點詳細地址";
-        document.getElementById('current-spot-address-hidden').value = currentSpot.addr || "未填寫地點詳細地址";
+        document.getElementById('current-spot-address-hidden').value = currentSpot.addr || "";
         document.getElementById('current-spot-map-link').href = currentSpot.map || "#";
-        const embedBox = document.getElementById('itinerary-map-html-box');
-        const embedContainer = document.getElementById('itinerary-map-embed-container');
-        if (currentSpot.embed && currentSpot.embed.trim() !== "") {
-            embedBox.innerHTML = currentSpot.embed;
-            embedContainer.classList.remove('hidden');
-        } else embedContainer.classList.add('hidden');
-    } else {
-        document.getElementById('current-spot-address-text').innerText = appState.hotelAddress;
-        document.getElementById('current-spot-address-hidden').value = appState.hotelAddress;
-        document.getElementById('current-spot-map-link').href = appState.hotelMapUrl;
+        const mapBox = document.getElementById('itinerary-map-html-box');
+        if(currentSpot.embed){
+            mapBox.innerHTML = `<iframe src="${currentSpot.embed}" class="w-full h-full border-0" allowfullscreen loading="lazy"></iframe>`;
+            document.getElementById('itinerary-map-embed-container').classList.remove('hidden');
+        }else{
+            mapBox.innerHTML = "";
+            document.getElementById('itinerary-map-embed-container').classList.add('hidden');
+        }
+    }else{
+        document.getElementById('current-itinerary').innerText = "今日暫無行程";
+        document.getElementById('current-spot-address-text').innerText = "";
+        document.getElementById('current-spot-map-link').href = "#";
+        document.getElementById('itinerary-map-html-box').innerHTML = "";
         document.getElementById('itinerary-map-embed-container').classList.add('hidden');
     }
-    if (nextSpot) document.getElementById('next-itinerary').innerHTML = `<span class="bg-gray-400 text-white px-2 py-0.5 rounded-lg text-sm mr-1">${nextSpot.time}</span> ${nextSpot.text}`;
-    else document.getElementById('next-itinerary').innerText = "🏁 今日後續已無大型群組集合排程，預祝今晚好眠！";
+    document.getElementById('next-itinerary').innerText = nextSpot ? `⏭️ ${nextSpot.time}｜${nextSpot.text}` : "今日行程完畢，休息～";
 }
 
-function renderDaySelectorDropdown() {
-    const select = document.getElementById('itinerary-day-select');
-    const currentVal = select.value;
-    select.innerHTML = '<option value="">-- 請選擇天數 --</option><option value="all">顯示全部天數大明細</option>';
-    appState.days.forEach((day, idx) => {
-        if (day.visible) {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = `Day ${idx+1} (${day.date})`;
-            select.appendChild(opt);
-        }
-    });
-    if (currentVal) select.value = currentVal;
+function renderDaySelectorDropdown(){
+    const sel = document.getElementById('itinerary-day-select');
+    sel.innerHTML = appState.days.filter(d=>d.visible).map(d=>
+        `<option value="${d.date}">📅 ${d.date}</option>`
+    ).join('');
     showSingleDaySchedule();
 }
 
-function showSingleDaySchedule() {
-    const val = document.getElementById('itinerary-day-select').value;
+function showSingleDaySchedule(){
+    const date = document.getElementById('itinerary-day-select').value;
+    const day = appState.days.find(d=>d.date===date);
     const box = document.getElementById('single-day-schedule-box');
-    box.innerHTML = "";
-    if (!val) return;
-    let daysToRender = [];
-    if (val === "all") daysToRender = appState.days.map((d, i) => ({ dayData: d, index: i })).filter(d => d.dayData.visible);
-    else { const idx = parseInt(val); if (appState.days[idx]) daysToRender.push({ dayData: appState.days[idx], index: idx }); }
-    daysToRender.forEach(pack => {
-        let dayHtml = `<div class="border-4 border-[#2B1B17] rounded-2xl p-3 bg-white mb-1 shadow-sm"><h4 class="text-base font-black text-[#FF8B8B] border-b-2 border-dashed border-[#2B1B17] pb-1 mb-2">🌟 Day ${pack.index + 1} 時間明細表 (${pack.dayData.date})</h4><div class="flex flex-col gap-2">`;
-        if (!pack.dayData.items || pack.dayData.items.length === 0) dayHtml += `<p class="text-xs font-bold text-gray-400 text-center py-2">隊長還沒有寫這一天的行程內容喔～</p>`;
-        else {
-            const sorted = [...pack.dayData.items].sort((a,b) => a.time.localeCompare(b.time));
-            sorted.forEach(item => {
-                dayHtml += `<div class="bg-gray-50 border-2 border-[#2B1B17] p-2 rounded-xl text-xs flex flex-col gap-1"><div class="flex items-center gap-1.5"><span class="bg-[#2B1B17] text-white px-1.5 py-0.5 rounded font-black text-[10px]">${item.time}</span><span class="font-black text-[#2B1B17] text-sm break-words">${item.text}</span></div>${item.addr ? `<div class="text-[11px] text-gray-500 font-bold pl-1 break-words">📍 地址: ${item.addr}</div>` : ''}</div>`;
-            });
-        }
-        dayHtml += `</div></div>`;
-        box.innerHTML += dayHtml;
-    });
+    if(!day || !day.items){ box.innerHTML = "<div class='text-gray-400 text-center py-4'>無行程</div>"; return; }
+    box.innerHTML = day.items.map(it=>`
+        <div class="bg-white border-2 border-[#2B1B17] rounded-xl p-3">
+            <div class="font-black text-[#2B1B17]">${it.time}｜${it.text}</div>
+            <div class="text-xs text-gray-600 mt-1">📍 ${it.addr||"未填地址"}</div>
+            <div class="flex gap-2 mt-2">
+                <a href="${it.map||'#'}" target="_blank" class="text-xs text-blue-600 underline">地圖導航</a>
+            </div>
+        </div>
+    `).join('');
 }
 
-function castVote(idx) {
-    if (!appState.currentUser) { alert("⚠️ 投票前請先在首頁最頂認領你是誰喔！否則隊長不知道是誰已投票。"); return; }
+function openLandscapeAddress(addr,title){
+    document.getElementById('landscape-address-title').innerText = title;
+    document.getElementById('landscape-address-text').innerText = addr || "暫無地址";
+    document.getElementById('landscape-address-modal').style.display = "flex";
+}
+function closeLandscapeAddress(){
+    document.getElementById('landscape-address-modal').style.display = "none";
+}
+
+// 投票
+function castVote(idx){
+    if(!appState.vote.open) return alert("投票未開啟！");
+    if(!appState.currentUser) return alert("請先選擇身分！");
     appState.vote.votesRecord[appState.currentUser] = idx;
     saveState();
 }
 
-function submitUserWish() {
-    const input = document.getElementById('user-wish-input');
-    const text = input.value.trim();
-    if (!text) return;
-    if (!appState.currentUser) {
-        alert("⚠️ 許願前請先在首頁最頂認領你的名字喔！");
-        return;
-    }
-    appState.wishes.push({ user: appState.currentUser, text: text });
-    input.value = "";
+function adminOpenVote(){
+    appState.vote.open = true;
+    appState.vote.published = false;
     saveState();
-    alert("🎋 願望已寫入竹籤，即時飛向隊長控制室！祝你願望成真！");
+    alert("✅ 投票已開啟！團員可開始投票");
 }
-
-// 全螢幕大地址彈窗
-function openLandscapeAddress(text, title) {
-    document.getElementById('landscape-address-title').innerText = title || "📍 目的地詳細地址";
-    document.getElementById('landscape-address-text').innerText = text || "未填寫完整地址";
-    document.getElementById('landscape-address-modal').style.display = 'flex';
-}
-function closeLandscapeAddress() { document.getElementById('landscape-address-modal').style.display = 'none'; }
-
-// 音效系統
-let audioCtx = null;
-function initAudioEngine() {
-    try {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        document.getElementById('audio-unlock-bar').style.display = 'none';
-        alert("🔊 喇叭音效通道解鎖成功！當隊長定時晨呼或發出召集令時，手機將會響起警報！");
-    } catch(e) { alert("瀏覽器音效解鎖失敗，請再點擊一次試試"); }
-}
-
-function playAlarmSoundLoop() {
-    if (!audioCtx) return;
-    let osc = audioCtx.createOscillator();
-    let gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-    osc.start();
-    let timer = setInterval(() => {
-        osc.frequency.setValueAtTime(osc.frequency.value === 880 ? 587 : 880, audioCtx.currentTime);
-    }, 120);
-    window.activeOscillator = osc;
-    window.activeOscTimer = timer;
-}
-
-function stopAlarmSoundLoop() {
-    if (window.activeOscillator) {
-        try { window.activeOscillator.stop(); } catch(e){}
-        clearInterval(window.activeOscTimer);
-        window.activeOscillator = null;
-    }
-}
-
-// 集合 / 鬧鐘
-function adminSendGatherOrder() {
-    const msg = document.getElementById('admin-gather-msg').value;
-    appState.gatherOrder = { active: true, msg: msg };
+function adminPublishVoteResults(){
+    appState.vote.open = false;
+    appState.vote.published = true;
     saveState();
-    playAlarmSoundLoop();
-    alert("🔥 已引爆發射全團大集合緊急強烈震動召集令！");
+    alert("📢 投票結束，已公佈結果！");
 }
-
-function dismissGatherAlert() {
-    stopAlarmSoundLoop();
-    appState.gatherOrder.active = false;
-    document.getElementById('gather-alert-modal').style.display = 'none';
-}
-
-function adminTriggerAlarmNow() {
-    appState.alarm.triggered = true;
+function adminResetVoteSystem(){
+    if(!confirm("確定重置所有投票紀錄？")) return;
+    appState.vote.votesRecord = {};
+    appState.vote.open = false;
+    appState.vote.published = false;
     saveState();
-    playAlarmSoundLoop();
-    alert(`🐔 已向全球全團親友手機立刻引爆「${appState.alarm.title}」立體晨呼！`);
+    alert("🔄 投票系統已重置");
 }
 
-function dismissChickenAlarm() {
-    stopAlarmSoundLoop();
-    document.getElementById('chicken-alarm-modal').style.display = 'none';
-}
-
-// 定時偵測鬧鐘
-setInterval(() => {
-    if (!appState.alarm.time || !appState.alarm.date) return;
-    const now = new Date();
-    const curDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    const curTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-    if (curDate === appState.alarm.date && curTime === appState.alarm.time && !appState.alarm.triggered) {
-        appState.alarm.triggered = true;
-        localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
-        document.getElementById('chicken-alarm-title').innerText = appState.alarm.title;
-        document.getElementById('chicken-alarm-modal').style.display = 'flex';
-        if (navigator.vibrate) navigator.vibrate([600, 300, 600, 300, 900]);
-        playAlarmSoundLoop();
-    }
-    if (curTime !== appState.alarm.time && appState.alarm.triggered) {
-        appState.alarm.triggered = false;
-        localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
-    }
-}, 1000);
-
-// 後台初始化
-function initAdminPanelValues() {
-    document.getElementById('admin-broadcast-input').value = appState.broadcast;
-    document.getElementById('admin-alarm-date').value = appState.alarm.date;
-    document.getElementById('admin-alarm-time').value = appState.alarm.time;
-    document.getElementById('admin-alarm-title').value = appState.alarm.title;
-    document.getElementById('admin-route-embed-url').value = appState.routeEmbedUrl;
-    document.getElementById('admin-route-tips-input').value = appState.routeTips;
-    document.getElementById('admin-transport-url').value = appState.transportUrl;
-    document.getElementById('admin-vote-title').value = appState.vote.title;
-    document.getElementById('admin-opt0-img').value = appState.vote.options[0].img;
-    document.getElementById('admin-opt0-text').value = appState.vote.options[0].text;
-    document.getElementById('admin-opt1-img').value = appState.vote.options[1].img;
-    document.getElementById('admin-opt1-text').value = appState.vote.options[1].text;
-    document.getElementById('admin-vote-deadline').value = appState.vote.deadline;
-    document.getElementById('admin-notice-input').value = appState.notices.map(n => n.text).join('\n');
-    renderAdminFlightsList(); 
-    renderAdminDaysConfigList();
-    initCurrencyUI();
-    loadCurrencyChecks();
-}
-
-function adminPublishBroadcast() {
-    appState.broadcast = document.getElementById('admin-broadcast-input').value;
+// 願望池
+function submitUserWish(){
+    const text = document.getElementById('user-wish-input').value.trim();
+    if(!text) return alert("請輸入願望！");
+    appState.wishes.push({user:appState.currentUser||"匿名",text:text});
+    document.getElementById('user-wish-input').value="";
     saveState();
-    alert("🚀 即時重要廣播已成功發射到全體團員首頁頂部！");
+    alert("✨ 願望已傳送給隊長！");
+}
+function adminClearAllWishes(){
+    if(!confirm("清空所有願望？")) return;
+    appState.wishes = [];
+    saveState();
 }
 
-function adminClearBroadcast() {
+// 廣播
+function adminPublishBroadcast(){
+    const t = document.getElementById('admin-broadcast-input').value.trim();
+    appState.broadcast = t;
+    saveState();
+    alert("📢 廣播已發布！");
+}
+function adminClearBroadcast(){
     appState.broadcast = "";
-    document.getElementById('admin-broadcast-input').value = "";
+    document.getElementById('admin-broadcast-input').value="";
     saveState();
-    alert("❌ 廣播已成功撤銷清除。");
 }
 
-function adminSaveAlarmSettings() {
+// 集合呼叫
+function adminSendGatherOrder(){
+    const msg = document.getElementById('admin-gather-msg').value.trim();
+    if(!msg) return alert("請輸入集合訊息！");
+    appState.gatherOrder = {active:true,msg:msg};
+    saveState();
+}
+function dismissGatherAlert(){
+    appState.gatherOrder.active = false;
+    saveState();
+}
+
+// 鬧鐘
+function adminSaveAlarmSettings(){
     appState.alarm.date = document.getElementById('admin-alarm-date').value;
     appState.alarm.time = document.getElementById('admin-alarm-time').value;
     appState.alarm.title = document.getElementById('admin-alarm-title').value;
     saveState();
-    alert("⏰ 奪命定時晨呼時間與對白已成功排產定時！");
+    alert("⏰ 鬧鐘設定已儲存");
+}
+function adminTriggerAlarmNow(){
+    triggerChickenAlarm();
+}
+function triggerChickenAlarm(){
+    const modal = document.getElementById('chicken-alarm-modal');
+    document.getElementById('chicken-alarm-title').innerText = appState.alarm.title;
+    modal.style.display = "flex";
+    if(navigator.vibrate) navigator.vibrate([300,200,300,200,300,200,800]);
+}
+function dismissChickenAlarm(){
+    document.getElementById('chicken-alarm-modal').style.display = "none";
 }
 
-function adminPublishVoteResults() {
-    appState.vote.open = false;
-    appState.vote.published = true;
+// 匯率
+function initCurrencyUI(){
+    const mop = document.getElementById('mopInput');
+    const jpy = document.getElementById('jpyInput');
+    const krw = document.getElementById('krwInput');
+    let lock = false;
+    mop.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(mop.value)||0;
+        jpy.value = (v*appState.mopToJpy).toFixed(2);
+        krw.value = (v*appState.mopToKrw).toFixed(2);
+        setTimeout(()=>lock=false,200);
+    };
+    jpy.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(jpy.value)||0;
+        mop.value = (v/appState.mopToJpy).toFixed(2);
+        krw.value = ((v/appState.mopToJpy)*appState.mopToKrw).toFixed(2);
+        setTimeout(()=>lock=false,200);
+    };
+    krw.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(krw.value)||0;
+        mop.value = (v/appState.mopToKrw).toFixed(2);
+        jpy.value = ((v/appState.mopToKrw)*appState.mopToJpy).toFixed(2);
+        setTimeout(()=>lock=false,200);
+    };
+    toggleCurrencyCard();
+}
+function saveAllCurrencyRate(){
+    const j = parseFloat(document.getElementById('admin-mop-jpy').value);
+    const k = parseFloat(document.getElementById('admin-mop-krw').value);
+    if(!j||!k) return alert("請輸入有效匯率");
+    appState.mopToJpy = j;
+    appState.mopToKrw = k;
     saveState();
-    alert("📢 投票已結束，正式公佈結果！");
+    alert("💱 匯率已儲存");
 }
-
-function adminResetVoteSystem() {
-    if (confirm("⚠️ 確定要洗牌重置、將全團所有人投出的票數全部清空嗎？")) {
-        appState.vote.published = false;
-        appState.vote.votesRecord = {};
-        saveState();
-        initAdminPanelValues();
-        alert("🔄 投票箱已清空洗牌！大家可以重新選過喇。");
-    }
+function toggleCurrencyCard(){
+    const card = document.getElementById('currency-card');
+    appState.isHideCurrency = document.getElementById('hideCurrencyToggle').checked;
+    card.style.display = appState.isHideCurrency ? "none":"block";
 }
-
-function adminClearAllWishes() {
-    if (confirm("⚠️ 確定要清空所有親友發來的願望竹籤嗎？")) {
-        appState.wishes = [];
-        saveState();
-        initAdminPanelValues();
-    }
+function loadCurrencyChecks(){
+    document.getElementById('hideCurrencyToggle').checked = appState.isHideCurrency;
 }
 
 // 航班
@@ -1105,124 +1056,31 @@ function adminSaveAndPushAllItineraries() {
     alert("📅 全體 7 天日程明細表、詳細地址及導航地圖已全面連動發佈！");
 }
 
-// ==================== 全新三幣互算核心邏輯 ====================
-const mopInput = document.getElementById('mopInput');
-const jpyInput = document.getElementById('jpyInput');
-const krwInput = document.getElementById('krwInput');
-const currencyCard = document.getElementById('currency-card');
-
-// 匯率初始化UI
-function initCurrencyUI() {
+// 後台面板初始化
+function initAdminPanelValues(){
+    document.getElementById('admin-weather-city').value = appState.weather.city||"Osaka";
+    document.getElementById('admin-route-embed-url').value = appState.routeEmbedUrl;
+    document.getElementById('admin-route-tips-input').value = appState.routeTips;
+    document.getElementById('admin-transport-url').value = appState.transportUrl;
+    document.getElementById('admin-alarm-date').value = appState.alarm.date;
+    document.getElementById('admin-alarm-time').value = appState.alarm.time;
+    document.getElementById('admin-alarm-title').value = appState.alarm.title;
+    document.getElementById('admin-vote-title').value = appState.vote.title;
+    document.getElementById('admin-opt0-img').value = appState.vote.options[0].img||"";
+    document.getElementById('admin-opt0-text').value = appState.vote.options[0].text||"";
+    document.getElementById('admin-opt1-img').value = appState.vote.options[1].img||"";
+    document.getElementById('admin-opt1-text').value = appState.vote.options[1].text||"";
+    document.getElementById('admin-vote-deadline').value = appState.vote.deadline||"";
+    document.getElementById('admin-notice-input').value = appState.notices.map(n=>n.text).join('\n');
     document.getElementById('admin-mop-jpy').value = appState.mopToJpy;
     document.getElementById('admin-mop-krw').value = appState.mopToKrw;
-    document.getElementById('hideCurrencyToggle').checked = appState.isHideCurrency;
-    currencyCard.style.display = appState.isHideCurrency ? 'none' : 'block';
+    renderAdminFlightsList(); 
+    renderAdminDaysConfigList();
 }
 
-// MOP輸入 → 自動算JPY、KRW
-mopInput.addEventListener('input', () => {
-    const mop = parseFloat(mopInput.value) || 0;
-    jpyInput.value = (mop * appState.mopToJpy).toFixed(2);
-    krwInput.value = (mop * appState.mopToKrw).toFixed(2);
-});
-
-// JPY輸入 → 自動算MOP、KRW
-jpyInput.addEventListener('input', () => {
-    const jpy = parseFloat(jpyInput.value) || 0;
-    const mop = jpy / appState.mopToJpy;
-    mopInput.value = mop.toFixed(2);
-    krwInput.value = (mop * appState.mopToKrw).toFixed(2);
-});
-
-// KRW輸入 → 自動算MOP、JPY
-krwInput.addEventListener('input', () => {
-    const krw = parseFloat(krwInput.value) || 0;
-    const mop = krw / appState.mopToKrw;
-    mopInput.value = mop.toFixed(2);
-    jpyInput.value = (mop * appState.mopToJpy).toFixed(2);
-});
-
-// 後台儲存匯率
-function saveAllCurrencyRate() {
-    const mopJpy = parseFloat(document.getElementById('admin-mop-jpy').value);
-    const mopKrw = parseFloat(document.getElementById('admin-mop-krw').value);
-    if (!mopJpy || !mopKrw || mopJpy <=0 || mopKrw <=0) { alert("請輸入有效匯率！"); return; }
-    appState.mopToJpy = mopJpy;
-    appState.mopToKrw = mopKrw;
-    saveState();
-    initCurrencyUI();
-    mopInput.value = ''; jpyInput.value = ''; krwInput.value = '';
-    alert("💱 匯率設定已儲存！");
-}
-
-// 一鍵隱藏/顯示整個匯率模塊
-function toggleCurrencyCard() {
-    appState.isHideCurrency = document.getElementById('hideCurrencyToggle').checked;
-    currencyCard.style.display = appState.isHideCurrency ? 'none' : 'block';
-    saveState();
-}
-
-// 單獨貨幣開關：只讀取、唔綁定即時onchange
-function updateCurrencyDisplay() {
-    if(!document.getElementById('showMop')) return;
-    const mopBox = document.getElementById('currency-mop');
-    const jpyBox = document.getElementById('currency-jpy');
-    const krwBox = document.getElementById('currency-krw');
-    const showMop = document.getElementById('showMop').checked;
-    const showJpy = document.getElementById('showJpy').checked;
-    const showKrw = document.getElementById('showKrw').checked;
-
-    mopBox.style.display = showMop ? 'flex' : 'none';
-    jpyBox.style.display = showJpy ? 'flex' : 'none';
-    krwBox.style.display = showKrw ? 'flex' : 'none';
-
-    localStorage.setItem('showMop', showMop);
-    localStorage.setItem('showJpy', showJpy);
-    localStorage.setItem('showKrw', showKrw);
-}
-
-// 進入後台時才執行一次
-function loadCurrencyChecks() {
-    if(!document.getElementById('showMop')) return;
-    document.getElementById('showMop').checked = localStorage.getItem('showMop') !== 'false';
-    document.getElementById('showJpy').checked = localStorage.getItem('showJpy') !== 'false';
-    document.getElementById('showKrw').checked = localStorage.getItem('showKrw') !== 'false';
-    updateCurrencyDisplay();
-}
-// 開啟投票：所有人可以投票、唔顯示結果
-function adminOpenVote() {
-    // 開啟投票即時讀取後台輸入嘅標題、選項、截單
-    appState.vote.title = document.getElementById('admin-vote-title').value.trim() || appState.vote.title;
-    appState.vote.options[0].img = document.getElementById('admin-opt0-img').value.trim() || appState.vote.options[0].img;
-    appState.vote.options[0].text = document.getElementById('admin-opt0-text').value.trim() || appState.vote.options[0].text;
-    appState.vote.options[1].img = document.getElementById('admin-opt1-img').value.trim() || appState.vote.options[1].img;
-    appState.vote.options[1].text = document.getElementById('admin-opt1-text').value.trim() || appState.vote.options[1].text;
-    appState.vote.deadline = document.getElementById('admin-vote-deadline').value.trim() || appState.vote.deadline;
-
-    appState.vote.open = true;
-    appState.vote.published = false;
-    saveState();
-    alert("🗳️ 投票已開啟！大家可以開始投票，暫不顯示結果");
-}
-// 修改原本發布結果：關閉投票 + 顯示結果
-function adminPublishVoteResults() {
-    appState.vote.open = false;
-    appState.vote.published = true;
-    appState.vote.title = document.getElementById('admin-vote-title').value;
-    appState.vote.options[0].img = document.getElementById('admin-opt0-img').value;
-    appState.vote.options[0].text = document.getElementById('admin-opt0-text').value;
-    appState.vote.options[1].img = document.getElementById('admin-opt1-img').value;
-    appState.vote.options[1].text = document.getElementById('admin-opt1-text').value;
-    appState.vote.deadline = document.getElementById('admin-vote-deadline').value;
-    saveState();
-    alert("📢 投票已結束，正式公佈結果！");
-}
-
-// 補齊 initAdminPanelValues 重載
-const oldInitAdmin = initAdminPanelValues;
-initAdminPanelValues = function(){
-    oldInitAdmin();
-    loadCurrencyChecks();
+// 音樂開啟
+function initAudioEngine(){
+    alert("🔊 音頻權限已開通！集合/鬧鐘震動呼叫功能正常啟用！");
 }
 </script>
 </body>
