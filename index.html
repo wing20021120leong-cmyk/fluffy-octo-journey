@@ -62,6 +62,9 @@
         html,body { width:100%; overflow-x:hidden; }
         .break-words { word-break: break-word; }
     </style>
+<!-- Firebase 實時同步 -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body class="pb-28 w-full overflow-x-hidden">
 
@@ -77,7 +80,7 @@
                     <option value="爸爸">👨🏻 老添</option>
                     <option value="媽咪">👩🏻 楊小姐</option>
                     <option value="家姐^^">👧🏽 波士晴</option>
-                   <option value=“訪客”>👥 訪客</option>
+                   <option value="訪客">👥 訪客</option>
                 </select>
 		<button onclick="unlockIdentity()" class="text-xs p-1">🔓</button>
             </div>
@@ -194,7 +197,7 @@
             </div>
             <div class="cute-card bg-[#FFF2CC] p-3 sm:p-4">
                 <h3 class="text-sm sm:text-base font-black text-[#2B1B17] mb-2">📅 查閱全期日程明細大貨艙</h3>
-                <select id="itinerary-day-select" class="w-full bg-white border-4 border-[#2B1B17] rounded-xl p-2 font-black text-sm sm:text-base" onchange="showSingleDaySchedule()"></select>
+              <select id="itinerary-day-select" class="w-full bg-white border-4 border-[#2B1B17] rounded-xl p-2 font-black text-sm sm:text-base"></select>
                 <div id="single-day-schedule-box" class="mt-4 flex flex-col gap-3"></div>
             </div>
         </section>
@@ -227,9 +230,9 @@
             <option value="爸爸">👨🏻 老添</option>
             <option value="媽咪">👩🏻 楊小姐</option>
             <option value="家姐^^">👧🏽 波士晴</option> 
-           <option value=“訪客”>👥 訪客</option>
+           <option value="訪客">👥 訪客</option>
         </select>
-        <button onclick="confirmIdentityFromModal()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] font-black py-3 rounded-xl text-sm sm:text-md shadow-[3px_3px_0px_0px_#2B1B17] btn-strong">確定登入 🚀</button>
+        <button onclick="confirmIdentityFromModal()" class="w-full bg-[#FFDE4D] border-4 border-[#2B1B17] font-black py-3 rounded-xl text-sm sm:text-md shadow-[3px_3px_0px_0px_#2B1B1B17] btn-strong">確定登入 🚀</button>
     </div>
 </div>
 
@@ -431,6 +434,27 @@
     </div>
 
 <script>
+// ===== Firebase 實時同步配置（已填入你嘅金鑰）=====
+// ===== Firebase 實時同步配置（已填入你嘅金鑰）=====
+const firebaseConfig = {
+  apiKey: "AIzaSyCt6LIZehf6OtsFk6ZoaHm9EoUa3Ncu8xo",
+  authDomain: "fluffy-octo-journey.firebaseapp.com",
+  databaseURL: "https://fluffy-octo-journey-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId: "fluffy-octo-journey"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 監聽雲端數據，一變即時刷新所有設備
+db.ref('/appState').on('value', snapshot => {
+  const data = snapshot.val();
+  if (data) {
+    appState = { ...appState, ...data };
+    renderAll();
+  }
+});
+// =============================================
+
 window.onload = function() {
     loadFromStorage();
     initCurrencyUI();
@@ -499,24 +523,15 @@ let appState = {
     ]
 };
 
+// 讀取身分
 function loadFromStorage() {
-    const saved = localStorage.getItem('親友神App_終極完全體');
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            appState = { ...appState, ...parsed };
-        } catch(e) {}
-    }
-    const modal = document.getElementById('start-identity-modal');
-    if (appState.currentUser && appState.currentUser.trim() !== "") {
-        modal.style.display = 'none';
-    } else {
-        modal.style.display = 'flex';
-    }
+  const modal = document.getElementById('start-identity-modal');
+  modal.style.display = appState.currentUser ? 'none' : 'flex';
 }
+
+// 儲存到 Firebase 雲端
 function saveState() {
-    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState));
-    renderAll();
+  db.ref('/appState').set(appState);
 }
 
 function saveUserIdentity(name) {
@@ -589,8 +604,8 @@ function confirmIdentityFromModal() {
     if(!u) return;
     appState.currentUser = u;
     saveState();
-    document.getElementById('start-identity-modal').style.display = 'none'; // 關彈窗
-    switchPage('home'); // 直接跳首頁
+    document.getElementById('start-identity-modal').style.display = 'none';
+    switchPage('home');
 }
 
 async function fetchWeatherFromAPI() {
@@ -657,7 +672,393 @@ function toggleNoticeItem(idx) {
     saveState();
 }
 
+// 【核心修復：下拉選單 + 行程渲染】
+let daySelectBound = false;
+function renderDaySelectorDropdown(){
+    const sel = document.getElementById('itinerary-day-select');
+    const visibleDays = appState.days.filter(d=>d.visible);
+    
+    sel.innerHTML = visibleDays.map(d=>`<option value="${d.date}">📅 ${d.date}</option>`).join('');
+
+    // 只綁定一次，唔重複綁定
+    if(!daySelectBound){
+        sel.addEventListener('change', showSingleDaySchedule);
+        daySelectBound = true;
+    }
+
+    // 預設選第一日
+    if(visibleDays.length > 0){
+        sel.value = visibleDays[0].date;
+    }
+    showSingleDaySchedule();
+}
+
+function showSingleDaySchedule(){
+    const sel = document.getElementById('itinerary-day-select');
+    const date = sel.value;
+    const day = appState.days.find(d=>d.date === date);
+    const box = document.getElementById('single-day-schedule-box');
+
+    if(!day || !day.items || day.items.length === 0){
+        box.innerHTML = `<div class="text-center text-gray-400 py-4">當日暫無行程</div>`;
+        return;
+    }
+
+    box.innerHTML = day.items.map(it=>`
+        <div class="bg-white border-2 border-[#2B1B17] rounded-xl p-3">
+            <div class="font-black text-[#2B1B17]">${it.time}｜${it.text}</div>
+            <div class="text-xs text-gray-600 mt-1">📍 ${it.addr||"未填地址"}</div>
+            <div class="flex gap-2 mt-2">
+                <a href="${it.map||'#'}" target="_blank" class="text-xs text-blue-600 underline">地圖導航</a>
+            </div>
+        </div>
+    `).join('');
+}
+
+function calculateLiveAndNextItinerary() {
+    const now = new Date();
+    const currentDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const currentTimeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    let currentSpot = null, nextSpot = null;
+    const todayData = appState.days.find(d => d.date === currentDateStr);
+    if (todayData && todayData.items && todayData.items.length > 0) {
+        const sortedItems = [...todayData.items].sort((a,b) => a.time.localeCompare(b.time));
+        for (let i = 0; i < sortedItems.length; i++) {
+            if (currentTimeStr >= sortedItems[i].time) {
+                currentSpot = sortedItems[i];
+                if (i + 1 < sortedItems.length) nextSpot = sortedItems[i+1];
+            }
+        }
+        if (!currentSpot && sortedItems.length > 0) nextSpot = sortedItems[0];
+    }
+    if (currentSpot) {
+        document.getElementById('current-itinerary').innerHTML = `<span class="bg-[#2B1B17] text-white px-2 py-0.5 rounded-lg text-sm mr-1">${currentSpot.text}</span> ${currentSpot.text}`;
+        document.getElementById('current-spot-address-text').innerText = currentSpot.addr || "未填寫地點詳細地址";
+        document.getElementById('current-spot-address-hidden').value = currentSpot.addr || "";
+        document.getElementById('current-spot-map-link').href = currentSpot.map || "#";
+        const mapBox = document.getElementById('itinerary-map-html-box');
+        if(currentSpot.embed){
+            mapBox.innerHTML = `<iframe src="${currentSpot.embed}" class="w-full h-full border-0" allowfullscreen loading="lazy"></iframe>`;
+            document.getElementById('itinerary-map-embed-container').classList.remove('hidden');
+        }else{
+            mapBox.innerHTML = "";
+            document.getElementById('itinerary-map-embed-container').classList.add('hidden');
+        }
+    }else{
+        document.getElementById('current-itinerary').innerText = "今日暫無行程";
+        document.getElementById('current-spot-address-text').innerText = "";
+        document.getElementById('current-spot-address-hidden').value = "";
+        document.getElementById('current-spot-map-link').href = "#";
+        document.getElementById('itinerary-map-html-box').innerHTML = "";
+        document.getElementById('itinerary-map-embed-container').classList.add('hidden');
+    }
+    document.getElementById('next-itinerary').innerText = nextSpot ? `⏭️ ${nextSpot.time}｜${nextSpot.text}` : "今日行程完畢";
+}
+
+function openLandscapeAddress(addr,title){
+    document.getElementById('landscape-address-title').innerText = title;
+    document.getElementById('landscape-address-text').innerText = addr || "暫無地址";
+    document.getElementById('landscape-address-modal').style.display = "flex";
+}
+function closeLandscapeAddress(){
+    document.getElementById('landscape-address-modal').style.display = "none";
+}
+
+// 投票
+function castVote(idx){
+    if(!appState.vote.open) return alert("投票未開啟");
+    if(!appState.currentUser) return alert("請先選擇身分");
+    appState.vote.votesRecord[appState.currentUser] = idx;
+    saveState();
+}
+
+function adminOpenVote(){
+    appState.vote.open = true;
+    appState.vote.published = false;
+    saveState();
+}
+function adminPublishVoteResults(){
+    appState.vote.open = false;
+    appState.vote.published = true;
+    saveState();
+}
+function adminResetVoteSystem(){
+    if(!confirm("確定重置所有投票紀錄？")) return;
+    appState.vote.votesRecord = {};
+    appState.vote.open = false;
+    appState.vote.published = false;
+    saveState();
+}
+
+// 許願池
+function submitUserWish(){
+    const text = document.getElementById('user-wish-input').value.trim();
+    if(!text) return;
+    appState.wishes.push({user:appState.currentUser||"匿名",text:text});
+    document.getElementById('user-wish-input').value="";
+    saveState();
+}
+function adminClearAllWishes(){
+    if(!confirm("清空所有願望？")) return;
+    appState.wishes = [];
+    saveState();
+}
+
+// 廣播
+function adminPublishBroadcast(){
+    const t = document.getElementById('admin-broadcast-input').value.trim();
+    appState.broadcast = t;
+    saveState();
+}
+function adminClearBroadcast(){
+    appState.broadcast = "";
+    document.getElementById('admin-broadcast-input').value="";
+    saveState();
+}
+
+// 集合令
+function adminSendGatherOrder(){
+    const msg = document.getElementById('admin-gather-msg').value.trim();
+    if(!msg) return;
+    appState.gatherOrder = {active:true,msg:msg};
+    saveState();
+}
+function dismissGatherAlert(){
+    appState.gatherOrder.active = false;
+    saveState();
+}
+
+// 鬧鐘
+function adminSaveAlarmSettings(){
+    appState.alarm.date = document.getElementById('admin-alarm-date').value;
+    appState.alarm.time = document.getElementById('admin-alarm-time').value;
+    appState.alarm.title = document.getElementById('admin-alarm-title').value;
+    saveState();
+}
+function adminTriggerAlarmNow(){
+    triggerChickenAlarm();
+}
+function triggerChickenAlarm(){
+    const modal = document.getElementById('chicken-alarm-modal');
+    document.getElementById('chicken-alarm-title').innerText = appState.alarm.title;
+    modal.style.display = "flex";
+    if(navigator.vibrate) navigator.vibrate([300,200,300,200,800]);
+}
+function dismissChickenAlarm(){
+    document.getElementById('chicken-alarm-modal').style.display = "none";
+}
+
+// 匯率
+function initCurrencyUI(){
+    const mop = document.getElementById('mopInput');
+    const jpy = document.getElementById('jpyInput');
+    const krw = document.getElementById('krwInput');
+    let lock = false;
+    mop.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(mop.value)||0;
+        jpy.value = (v*appState.mopToJpy).toFixed(0);
+        krw.value = (v*appState.mopToKrw).toFixed(0);
+        setTimeout(()=>lock=false,200);
+    };
+    jpy.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(jpy.value)||0;
+        mop.value = (v/appState.mopToJpy).toFixed(2);
+        krw.value = ((v/appState.mopToJpy)*appState.mopToKrw).toFixed(0);
+        setTimeout(()=>lock=false,200);
+    };
+    krw.oninput = ()=>{
+        if(lock) return; lock=true;
+        const v = parseFloat(krw.value)||0;
+        mop.value = (v/appState.mopToKrw).toFixed(2);
+        jpy.value = ((v/appState.mopToKrw)*appState.mopToJpy).toFixed(0);
+        setTimeout(()=>lock=false,200);
+    };
+    toggleCurrencyCard();
+}
+function saveAllCurrencyRate(){
+    const j = parseFloat(document.getElementById('admin-mop-jpy').value);
+    const k = parseFloat(document.getElementById('admin-mop-krw').value);
+    if(isNaN(j)||isNaN(k)) return alert("請輸入有效數字");
+    appState.mopToJpy = j;
+    appState.mopToKrw = k;
+    saveState();
+}
+function toggleCurrencyCard(){
+    const card = document.getElementById('currency-card');
+    appState.isHideCurrency = document.getElementById('hideCurrencyToggle').checked;
+    card.style.display = appState.isHideCurrency ? "none":"block";
+    saveState();
+}
+function loadCurrencyChecks(){
+    document.getElementById('hideCurrencyToggle').checked = appState.isHideCurrency;
+}
+
+// 航班
+function renderAdminFlightsList() {
+    const box = document.getElementById('admin-flights-list');
+    box.innerHTML = appState.flights.map((f, idx) => `
+        <div class="bg-white p-2 border rounded-lg text-[11px] flex flex-col gap-1 shadow-sm">
+            <div class="flex gap-1 items-center">
+                <input type="date" value="${f.date}" class="border font-bold p-0.5 rounded" onchange="updateFlightField(${idx}, 'date', this.value)">
+                <input type="text" value="${f.num}" placeholder="航班" class="w-14 border font-bold p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'num', this.value)">
+                <label class="flex items-center gap-0.5 text-[10px]">
+                    <input type="checkbox" ${f.showToGroup ? 'checked' : ''} onchange="updateFlightField(${idx}, 'showToGroup', this.checked)">顯示
+                </label>
+                <button onclick="adminDeleteFlight(${idx})" class="bg-red-500 text-white font-black px-1 rounded ml-auto">✕</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1">
+                <input type="text" value="${f.terminal}" placeholder="航廈" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'terminal', this.value)">
+                <input type="time" value="${f.time}" class="border p-0.5 rounded" onchange="updateFlightField(${idx}, 'time', this.value)">
+                <input type="text" value="${f.baggage}" placeholder="行李盤" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'baggage', this.value)">
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateFlightField(idx,key,val){
+    appState.flights[idx][key] = val;
+    saveState();
+}
+function adminDeleteFlight(idx){
+    appState.flights.splice(idx,1);
+    saveState();
+}
+function adminAddNewFlightSlot(){
+    appState.flights.push({date:"",num:"",terminal:"",time:"",baggage:"",showToGroup:true});
+    saveState();
+}
+
+// 行程日
+function renderAdminDaysConfigList() {
+    const container = document.getElementById('admin-days-list-container');
+    container.innerHTML = "";
+    appState.days.forEach((day, dIdx) => {
+        let dayBox = document.createElement('div');
+        dayBox.className = "border-2 border-[#2B1B17] rounded-xl p-2 bg-white shadow-sm flex flex-col gap-1.5";
+        let headerHtml = `
+            <div class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg border">
+                <span class="font-black text-xs">📅 Day ${dIdx+1} 日期:</span>
+                <input type="date" value="${day.date}" class="border rounded px-1 font-bold text-xs" onchange="updateDayDateConfig(${dIdx}, this.value)">
+                <label class="flex items-center gap-0.5 text-xs font-black text-emerald-700">
+                    <input type="checkbox" ${day.visible ? 'checked' : ''} onchange="toggleDayVisibilityConfig(${dIdx}, this.checked)"> 解鎖
+                </label>
+                <button onclick="deleteWholeDay(${dIdx})" class="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-lg font-black btn-strong">🗑️ 刪除本日</button>
+            </div>
+            <div class="flex flex-col gap-1.5 mt-1">
+        `;
+        if (day.items && day.items.length > 0) {
+            day.items.forEach((item, iIdx) => {
+                headerHtml += `
+                    <div class="bg-gray-50/50 p-1.5 rounded-lg border border-dashed text-xs flex flex-col gap-1">
+                        <div class="flex gap-1 items-center">
+                            <input type="time" value="${item.time}" class="border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'time', this.value)">
+                            <input type="text" value="${item.text}" placeholder="行程內容" class="flex-1 border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'text', this.value)">
+                            <button class="bg-red-500 text-white px-1.5 py-0.5 rounded font-black text-[10px] btn-strong" onclick="deleteItemConfig(${dIdx}, ${iIdx})">✕</button>
+                        </div>
+                        <input type="text" value="${item.addr || ''}" placeholder="詳細地址 (For司機放大全螢幕)" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'addr', this.value)">
+                        <input type="text" value="${item.map || ''}" placeholder="Google Maps 跳轉導航連結" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'map', this.value)">
+                        <input type="text" value="${item.embed || ''}" placeholder="Google 地圖 iframe 嵌入碼碼 (選填)" class="w-full border rounded p-0.5 text-[10px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'embed', this.value)">
+                    </div>
+                `;
+            });
+        }
+        headerHtml += `
+            </div>
+            <button class="bg-gray-100 border rounded-lg py-1 text-[11px] font-black mt-1 btn-strong" onclick="adminAddNewItemToDayConfig(${dIdx})">+ 為 Day ${dIdx+1} 增加新時間軸項目</button>
+        `;
+        dayBox.innerHTML = headerHtml;
+        container.appendChild(dayBox);
+    });
+}
+
+// 新增：刪除完整一天行程
+function deleteWholeDay(dIdx) {
+    if(confirm(`⚠️ 確定要刪除 Day ${dIdx+1} 成整日行程？無法復原！`)){
+        appState.days.splice(dIdx,1);
+        saveState();
+        renderAdminDaysConfigList();
+    }
+}
+function updateDayDateConfig(dIdx,val){
+    appState.days[dIdx].date = val;
+    saveState();
+}
+function toggleDayVisibilityConfig(dIdx,bool){
+    appState.days[dIdx].visible = bool;
+    saveState();
+}
+function updateItemFieldConfig(dIdx,iIdx,key,val){
+    appState.days[dIdx].items[iIdx][key] = val;
+    saveState();
+}
+function deleteItemConfig(dIdx,iIdx){
+    appState.days[dIdx].items.splice(iIdx,1);
+    saveState();
+    renderAdminDaysConfigList();
+}
+function adminAddNewItemToDayConfig(dIdx){
+    appState.days[dIdx].items.push({time:"09:00",text:"",addr:"",map:"",embed:""});
+    saveState();
+    renderAdminDaysConfigList();
+}
+function adminAddNewDayConfig(){
+    appState.days.push({date:"",visible:true,items:[]});
+    saveState();
+    renderAdminDaysConfigList();
+}
+function adminSaveAndPushAllItineraries(){
+    saveState();
+    alert("📅 全體 7 天日程明細表、詳細地址及導航地圖已全面連動發佈！");
+}
+
+// 後台初始化
+function initAdminPanelValues(){
+    document.getElementById('admin-vote-title').value = appState.vote.title;
+    document.getElementById('admin-opt0-img').value = appState.vote.options[0].img;
+    document.getElementById('admin-opt0-text').value = appState.vote.options[0].text;
+    document.getElementById('admin-opt1-img').value = appState.vote.options[1].img;
+    document.getElementById('admin-opt1-text').value = appState.vote.options[1].text;
+    document.getElementById('admin-vote-deadline').value = appState.vote.deadline;
+    document.getElementById('admin-broadcast-input').value = appState.broadcast;
+    document.getElementById('admin-mop-jpy').value = appState.mopToJpy;
+    document.getElementById('admin-mop-krw').value = appState.mopToKrw;
+    document.getElementById('admin-weather-city').value = appState.weather.city;
+    document.getElementById('manual-city-name').value = appState.weather.name;
+    document.getElementById('manual-weather-icon').value = appState.weather.icon;
+    document.getElementById('manual-weather-desc').value = appState.weather.desc;
+    document.getElementById('manual-temp').value = appState.weather.temp;
+    document.getElementById('manual-temp-max').value = appState.weather.max;
+    document.getElementById('manual-temp-min').value = appState.weather.min;
+    document.getElementById('admin-route-embed-url').value = appState.routeEmbedUrl;
+    document.getElementById('admin-route-tips-input').value = appState.routeTips;
+    document.getElementById('admin-transport-url').value = appState.transportUrl;
+    document.getElementById('admin-alarm-date').value = appState.alarm.date;
+    document.getElementById('admin-alarm-time').value = appState.alarm.time;
+    document.getElementById('admin-alarm-title').value = appState.alarm.title;
+    document.getElementById('admin-notice-input').value = appState.notices.map(n=>n.text).join('\n');
+    renderAdminFlightsList();
+    renderAdminDaysConfigList();
+}
+
+// 音頻初始化
+function initAudioEngine(){
+    try{
+        const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = 800;
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime+0.1);
+    }catch(e){}
+    alert("🔔 聲音權限已開啟，集合/鬧鐘可正常播放");
+}
+
+// 全局渲染入口
 function renderAll() {
+renderDaySelectorDropdown();
     document.getElementById('user-identity-select').value = appState.currentUser;
     const bBox = document.getElementById('live-broadcast-box');
     if (appState.broadcast && appState.broadcast.trim() !== "") {
@@ -744,343 +1145,6 @@ if (appState.vote.open || appState.vote.published) {
     calculateLiveAndNextItinerary();
     renderDaySelectorDropdown();
     initCurrencyUI();
-}
-
-function calculateLiveAndNextItinerary() {
-    const now = new Date();
-    const currentDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    const currentTimeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-    let currentSpot = null, nextSpot = null;
-    const todayData = appState.days.find(d => d.date === currentDateStr);
-    if (todayData && todayData.items && todayData.items.length > 0) {
-        const sortedItems = [...todayData.items].sort((a,b) => a.time.localeCompare(b.time));
-        for (let i = 0; i < sortedItems.length; i++) {
-            if (currentTimeStr >= sortedItems[i].time) {
-                currentSpot = sortedItems[i];
-                if (i + 1 < sortedItems.length) nextSpot = sortedItems[i+1];
-            }
-        }
-        if (!currentSpot && sortedItems.length > 0) nextSpot = sortedItems[0];
-    }
-    if (currentSpot) {
-        document.getElementById('current-itinerary').innerHTML = `<span class="bg-[#2B1B17] text-white px-2 py-0.5 rounded-lg text-sm mr-1 border">${currentSpot.time}</span> ${currentSpot.text}`;
-        document.getElementById('current-spot-address-text').innerText = currentSpot.addr || "未填寫地點詳細地址";
-        document.getElementById('current-spot-address-hidden').value = currentSpot.addr || "";
-        document.getElementById('current-spot-map-link').href = currentSpot.map || "#";
-        const mapBox = document.getElementById('itinerary-map-html-box');
-        if(currentSpot.embed){
-            mapBox.innerHTML = `<iframe src="${currentSpot.embed}" class="w-full h-full border-0" allowfullscreen loading="lazy"></iframe>`;
-            document.getElementById('itinerary-map-embed-container').classList.remove('hidden');
-        }else{
-            mapBox.innerHTML = "";
-            document.getElementById('itinerary-map-embed-container').classList.add('hidden');
-        }
-    }else{
-        document.getElementById('current-itinerary').innerText = "今日暫無行程";
-        document.getElementById('current-spot-address-text').innerText = "";
-        document.getElementById('current-spot-map-link').href = "#";
-        document.getElementById('itinerary-map-html-box').innerHTML = "";
-        document.getElementById('itinerary-map-embed-container').classList.add('hidden');
-    }
-    document.getElementById('next-itinerary').innerText = nextSpot ? `⏭️ ${nextSpot.time}｜${nextSpot.text}` : "今日行程完畢，休息～";
-}
-
-function renderDaySelectorDropdown(){
-    const sel = document.getElementById('itinerary-day-select');
-    sel.innerHTML = appState.days.filter(d=>d.visible).map(d=>
-        `<option value="${d.date}">📅 ${d.date}</option>`
-    ).join('');
-    showSingleDaySchedule();
-}
-
-function showSingleDaySchedule(){
-    const date = document.getElementById('itinerary-day-select').value;
-    const day = appState.days.find(d=>d.date===date);
-    const box = document.getElementById('single-day-schedule-box');
-    if(!day || !day.items){ box.innerHTML = "<div class='text-gray-400 text-center py-4'>無行程</div>"; return; }
-    box.innerHTML = day.items.map(it=>`
-        <div class="bg-white border-2 border-[#2B1B17] rounded-xl p-3">
-            <div class="font-black text-[#2B1B17]">${it.time}｜${it.text}</div>
-            <div class="text-xs text-gray-600 mt-1">📍 ${it.addr||"未填地址"}</div>
-            <div class="flex gap-2 mt-2">
-                <a href="${it.map||'#'}" target="_blank" class="text-xs text-blue-600 underline">地圖導航</a>
-            </div>
-        </div>
-    `).join('');
-}
-
-function openLandscapeAddress(addr,title){
-    document.getElementById('landscape-address-title').innerText = title;
-    document.getElementById('landscape-address-text').innerText = addr || "暫無地址";
-    document.getElementById('landscape-address-modal').style.display = "flex";
-}
-function closeLandscapeAddress(){
-    document.getElementById('landscape-address-modal').style.display = "none";
-}
-
-// 投票
-function castVote(idx){
-    if(!appState.vote.open) return alert("投票未開啟！");
-    if(!appState.currentUser) return alert("請先選擇身分！");
-    appState.vote.votesRecord[appState.currentUser] = idx;
-    saveState();
-}
-
-function adminOpenVote(){
-    appState.vote.open = true;
-    appState.vote.published = false;
-    saveState();
-    alert("✅ 投票已開啟！團員可開始投票");
-}
-function adminPublishVoteResults(){
-    appState.vote.open = false;
-    appState.vote.published = true;
-    saveState();
-    alert("📢 投票結束，已公佈結果！");
-}
-function adminResetVoteSystem(){
-    if(!confirm("確定重置所有投票紀錄？")) return;
-    appState.vote.votesRecord = {};
-    appState.vote.open = false;
-    appState.vote.published = false;
-    saveState();
-    alert("🔄 投票系統已重置");
-}
-
-// 願望池
-function submitUserWish(){
-    const text = document.getElementById('user-wish-input').value.trim();
-    if(!text) return alert("請輸入願望！");
-    appState.wishes.push({user:appState.currentUser||"匿名",text:text});
-    document.getElementById('user-wish-input').value="";
-    saveState();
-    alert("✨ 願望已傳送給隊長！");
-}
-function adminClearAllWishes(){
-    if(!confirm("清空所有願望？")) return;
-    appState.wishes = [];
-    saveState();
-}
-
-// 廣播
-function adminPublishBroadcast(){
-    const t = document.getElementById('admin-broadcast-input').value.trim();
-    appState.broadcast = t;
-    saveState();
-    alert("📢 廣播已發布！");
-}
-function adminClearBroadcast(){
-    appState.broadcast = "";
-    document.getElementById('admin-broadcast-input').value="";
-    saveState();
-}
-
-// 集合呼叫
-function adminSendGatherOrder(){
-    const msg = document.getElementById('admin-gather-msg').value.trim();
-    if(!msg) return alert("請輸入集合訊息！");
-    appState.gatherOrder = {active:true,msg:msg};
-    saveState();
-}
-function dismissGatherAlert(){
-    appState.gatherOrder.active = false;
-    saveState();
-}
-
-// 鬧鐘
-function adminSaveAlarmSettings(){
-    appState.alarm.date = document.getElementById('admin-alarm-date').value;
-    appState.alarm.time = document.getElementById('admin-alarm-time').value;
-    appState.alarm.title = document.getElementById('admin-alarm-title').value;
-    saveState();
-    alert("⏰ 鬧鐘設定已儲存");
-}
-function adminTriggerAlarmNow(){
-    triggerChickenAlarm();
-}
-function triggerChickenAlarm(){
-    const modal = document.getElementById('chicken-alarm-modal');
-    document.getElementById('chicken-alarm-title').innerText = appState.alarm.title;
-    modal.style.display = "flex";
-    if(navigator.vibrate) navigator.vibrate([300,200,300,200,300,200,800]);
-}
-function dismissChickenAlarm(){
-    document.getElementById('chicken-alarm-modal').style.display = "none";
-}
-
-// 匯率
-function initCurrencyUI(){
-    const mop = document.getElementById('mopInput');
-    const jpy = document.getElementById('jpyInput');
-    const krw = document.getElementById('krwInput');
-    let lock = false;
-    mop.oninput = ()=>{
-        if(lock) return; lock=true;
-        const v = parseFloat(mop.value)||0;
-        jpy.value = (v*appState.mopToJpy).toFixed(2);
-        krw.value = (v*appState.mopToKrw).toFixed(2);
-        setTimeout(()=>lock=false,200);
-    };
-    jpy.oninput = ()=>{
-        if(lock) return; lock=true;
-        const v = parseFloat(jpy.value)||0;
-        mop.value = (v/appState.mopToJpy).toFixed(2);
-        krw.value = ((v/appState.mopToJpy)*appState.mopToKrw).toFixed(2);
-        setTimeout(()=>lock=false,200);
-    };
-    krw.oninput = ()=>{
-        if(lock) return; lock=true;
-        const v = parseFloat(krw.value)||0;
-        mop.value = (v/appState.mopToKrw).toFixed(2);
-        jpy.value = ((v/appState.mopToKrw)*appState.mopToJpy).toFixed(2);
-        setTimeout(()=>lock=false,200);
-    };
-    toggleCurrencyCard();
-}
-function saveAllCurrencyRate(){
-    const j = parseFloat(document.getElementById('admin-mop-jpy').value);
-    const k = parseFloat(document.getElementById('admin-mop-krw').value);
-    if(!j||!k) return alert("請輸入有效匯率");
-    appState.mopToJpy = j;
-    appState.mopToKrw = k;
-    saveState();
-    alert("💱 匯率已儲存");
-}
-function toggleCurrencyCard(){
-    const card = document.getElementById('currency-card');
-    appState.isHideCurrency = document.getElementById('hideCurrencyToggle').checked;
-    card.style.display = appState.isHideCurrency ? "none":"block";
-}
-function loadCurrencyChecks(){
-    document.getElementById('hideCurrencyToggle').checked = appState.isHideCurrency;
-}
-
-// 航班
-function renderAdminFlightsList() {
-    const box = document.getElementById('admin-flights-list');
-    box.innerHTML = appState.flights.map((f, idx) => `
-        <div class="bg-white p-2 border rounded-lg text-[11px] flex flex-col gap-1 shadow-sm">
-            <div class="flex gap-1 items-center">
-                <input type="date" value="${f.date}" class="border font-bold p-0.5 rounded" onchange="updateFlightField(${idx}, 'date', this.value)">
-                <input type="text" value="${f.num}" placeholder="航班" class="w-14 border font-bold p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'num', this.value)">
-                <label class="flex items-center gap-0.5 text-[10px]">
-                    <input type="checkbox" ${f.showToGroup ? 'checked' : ''} onchange="updateFlightField(${idx}, 'showToGroup', this.checked)">顯示
-                </label>
-                <button onclick="adminDeleteFlight(${idx})" class="bg-red-500 text-white font-black px-1 rounded ml-auto">✕</button>
-            </div>
-            <div class="grid grid-cols-3 gap-1">
-                <input type="text" value="${f.terminal}" placeholder="航廈" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'terminal', this.value)">
-                <input type="time" value="${f.time}" class="border p-0.5 rounded" onchange="updateFlightField(${idx}, 'time', this.value)">
-                <input type="text" value="${f.baggage}" placeholder="行李盤" class="border p-0.5 rounded text-center" onchange="updateFlightField(${idx}, 'baggage', this.value)">
-            </div>
-        </div>
-    `).join('');
-}
-
-function updateFlightField(idx, field, val) { 
-    appState.flights[idx][field] = val; 
-    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
-}
-function adminAddNewFlightSlot() { 
-    appState.flights.push({ date: "2026-05-25", num: "CX000", terminal: "T1", time: "12:00", baggage: "待公佈", showToGroup:true }); 
-    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
-    renderAdminFlightsList(); 
-}
-function adminDeleteFlight(idx) { 
-    appState.flights.splice(idx, 1); 
-    localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); 
-    renderAdminFlightsList(); 
-}
-
-// ========== 後台行程（重點：加咗刪除 Day 按鈕）==========
-function renderAdminDaysConfigList() {
-    const container = document.getElementById('admin-days-list-container');
-    container.innerHTML = "";
-    appState.days.forEach((day, dIdx) => {
-        let dayBox = document.createElement('div');
-        dayBox.className = "border-2 border-[#2B1B17] rounded-xl p-2 bg-white shadow-sm flex flex-col gap-1.5";
-        let headerHtml = `
-            <div class="flex justify-between items-center bg-gray-50 p-1.5 rounded-lg border">
-                <span class="font-black text-xs">📅 Day ${dIdx+1} 日期:</span>
-                <input type="date" value="${day.date}" class="border rounded px-1 font-bold text-xs" onchange="updateDayDateConfig(${dIdx}, this.value)">
-                <label class="flex items-center gap-0.5 text-xs font-black text-emerald-700">
-                    <input type="checkbox" ${day.visible ? 'checked' : ''} onchange="toggleDayVisibilityConfig(${dIdx}, this.checked)"> 解鎖
-                </label>
-                <button onclick="deleteWholeDay(${dIdx})" class="bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-lg font-black btn-strong">🗑️ 刪除本日</button>
-            </div>
-            <div class="flex flex-col gap-1.5 mt-1">
-        `;
-        if (day.items && day.items.length > 0) {
-            day.items.forEach((item, iIdx) => {
-                headerHtml += `
-                    <div class="bg-gray-50/50 p-1.5 rounded-lg border border-dashed text-xs flex flex-col gap-1">
-                        <div class="flex gap-1 items-center">
-                            <input type="time" value="${item.time}" class="border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'time', this.value)">
-                            <input type="text" value="${item.text}" placeholder="行程內容" class="flex-1 border rounded p-0.5 font-bold" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'text', this.value)">
-                            <button class="bg-red-500 text-white px-1.5 py-0.5 rounded font-black text-[10px] btn-strong" onclick="deleteItemConfig(${dIdx}, ${iIdx})">✕</button>
-                        </div>
-                        <input type="text" value="${item.addr || ''}" placeholder="詳細地址 (For司機放大全螢幕)" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'addr', this.value)">
-                        <input type="text" value="${item.map || ''}" placeholder="Google Maps 跳轉導航連結" class="w-full border rounded p-0.5 text-[11px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'map', this.value)">
-                        <input type="text" value="${item.embed || ''}" placeholder="Google 地圖 iframe 嵌入碼碼 (選填)" class="w-full border rounded p-0.5 text-[10px]" onchange="updateItemFieldConfig(${dIdx}, ${iIdx}, 'embed', this.value)">
-                    </div>
-                `;
-            });
-        }
-        headerHtml += `
-            </div>
-            <button class="bg-gray-100 border rounded-lg py-1 text-[11px] font-black mt-1 btn-strong" onclick="adminAddNewItemToDayConfig(${dIdx})">+ 為 Day ${dIdx+1} 增加新時間軸項目</button>
-        `;
-        dayBox.innerHTML = headerHtml;
-        container.appendChild(dayBox);
-    });
-}
-
-// 新增：刪除完整一天行程
-function deleteWholeDay(dIdx) {
-    if(confirm(`⚠️ 確定要刪除 Day ${dIdx+1} 成整日行程？無法復原！`)){
-        appState.days.splice(dIdx,1);
-        saveState();
-        renderAdminDaysConfigList();
-    }
-}
-
-function updateDayDateConfig(dIdx, val) { appState.days[dIdx].date = val; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
-function toggleDayVisibilityConfig(dIdx, checked) { appState.days[dIdx].visible = checked; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
-function updateItemFieldConfig(dIdx, iIdx, field, val) { appState.days[dIdx].items[iIdx][field] = val; localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); }
-function adminAddNewDayConfig() { let nextDay = appState.days.length + 1; appState.days.push({ date: `2026-05-${24 + nextDay}`, visible: true, items: [{ time: "10:00", text: `Day ${nextDay} 愉快集合出發 🌟`, addr: "", map: "", embed: "" }] }); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
-function adminAddNewItemToDayConfig(dIdx) { appState.days[dIdx].items.push({ time: "12:00", text: "新景點行程", addr: "", map: "", embed: "" }); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
-function deleteItemConfig(dIdx, iIdx) { appState.days[dIdx].items.splice(iIdx, 1); localStorage.setItem('親友神App_終極完全體', JSON.stringify(appState)); renderAdminDaysConfigList(); }
-
-function adminSaveAndPushAllItineraries() {
-    saveState();
-    alert("📅 全體 7 天日程明細表、詳細地址及導航地圖已全面連動發佈！");
-}
-
-// 後台面板初始化
-function initAdminPanelValues(){
-    document.getElementById('admin-weather-city').value = appState.weather.city||"Osaka";
-    document.getElementById('admin-route-embed-url').value = appState.routeEmbedUrl;
-    document.getElementById('admin-route-tips-input').value = appState.routeTips;
-    document.getElementById('admin-transport-url').value = appState.transportUrl;
-    document.getElementById('admin-alarm-date').value = appState.alarm.date;
-    document.getElementById('admin-alarm-time').value = appState.alarm.time;
-    document.getElementById('admin-alarm-title').value = appState.alarm.title;
-    document.getElementById('admin-vote-title').value = appState.vote.title;
-    document.getElementById('admin-opt0-img').value = appState.vote.options[0].img||"";
-    document.getElementById('admin-opt0-text').value = appState.vote.options[0].text||"";
-    document.getElementById('admin-opt1-img').value = appState.vote.options[1].img||"";
-    document.getElementById('admin-opt1-text').value = appState.vote.options[1].text||"";
-    document.getElementById('admin-vote-deadline').value = appState.vote.deadline||"";
-    document.getElementById('admin-notice-input').value = appState.notices.map(n=>n.text).join('\n');
-    document.getElementById('admin-mop-jpy').value = appState.mopToJpy;
-    document.getElementById('admin-mop-krw').value = appState.mopToKrw;
-    renderAdminFlightsList(); 
-    renderAdminDaysConfigList();
-}
-
-// 音樂開啟
-function initAudioEngine(){
-    alert("🔊 音頻權限已開通！集合/鬧鐘震動呼叫功能正常啟用！");
 }
 </script>
 </body>
