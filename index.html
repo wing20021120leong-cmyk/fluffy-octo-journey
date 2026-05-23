@@ -458,8 +458,6 @@ db.ref('/appState').on('value', snapshot => {
 window.onload = function() {
     loadFromStorage();
     initCurrencyUI();
-    renderAll();
-    loadCurrencyChecks();
 };
 
 const ADMIN_PASSWORD = '0521'; 
@@ -531,14 +529,100 @@ function loadFromStorage() {
 
 // 儲存到 Firebase 雲端
 function saveState() {
-  db.ref('/appState').set(appState);
+
+    const saveData = {
+        ...appState
+    };
+
+    delete saveData.currentUser;
+
+    db.ref('/appState')
+        .set(saveData)
+        .then(() => {
+
+            console.log("✅ 已同步 Firebase");
+
+        })
+        .catch(err => {
+
+            console.error("❌ Firebase 儲存失敗", err);
+
+        });
+}
+function listenAppState() {
+
+    db.ref('/appState').on('value', snapshot => {
+
+        const data = snapshot.val();
+
+        if (data) {
+
+            const currentUser = appState.currentUser;
+
+            appState = {
+                ...appState,
+                ...data
+            };
+
+            appState.currentUser = currentUser;
+
+            renderAll();
+
+            initCurrencyUI();
+
+            loadCurrencyChecks();
+
+            renderDaySelectorDropdown();
+
+            renderAdminFlightsList();
+
+            renderAdminDaysConfigList();
+
+            calculateLiveAndNextItinerary();
+
+            console.log("🌍 雲端資料已即時同步！");
+        }
+    });
 }
 
 function saveUserIdentity(name) {
-    appState.currentUser = name;
-    saveState();
-}
 
+    localStorage.setItem("travelAppUser", name);
+
+    appState.currentUser = name;
+
+    // 更新左上角名字
+    document.getElementById(''user-identity-select'').innerText = name;
+
+    console.log("👤 使用者身份已儲存");
+}
+function loadUserIdentity() {
+
+    const savedUser = localStorage.getItem("travelAppUser");
+
+    if (savedUser) {
+
+        appState.currentUser = savedUser;
+
+        const select1 = document.getElementById('user-identity-select');
+
+        const select2 = document.getElementById('modal-user-select');
+
+        if (select1) {
+
+            select1.disabled = false;
+
+            select1.value = savedUser;
+
+            select1.disabled = true;
+        }
+
+        if (select2) {
+
+            select2.value = savedUser;
+        }
+    }
+}
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {
         switchPage(this.getAttribute('data-page'));
@@ -1145,6 +1229,28 @@ if (appState.vote.open || appState.vote.published) {
     calculateLiveAndNextItinerary();
     renderDaySelectorDropdown();
     initCurrencyUI();
+}
+window.onload = function () {
+
+    loadUserIdentity();
+
+    listenAppState();
+
+    renderAll();
+
+    initCurrencyUI();
+
+    loadCurrencyChecks();
+
+    renderDaySelectorDropdown();
+
+    calculateLiveAndNextItinerary();
+if (!appState.currentUser) {
+
+document.getElementById('start-identity-modal').style.display = 'flex';
+
+} 
+    console.log("🚀 Travel App 已啟動");
 }
 </script>
 </body>
