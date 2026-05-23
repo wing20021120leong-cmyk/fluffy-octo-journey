@@ -587,41 +587,11 @@ function listenAppState() {
 
 function saveUserIdentity(name) {
 
-    localStorage.setItem("travelAppUser", name);
-
     appState.currentUser = name;
 
-    // 更新左上角名字
-    document.getElementById(''user-identity-select'').innerText = name;
+    document.getElementById('user-identity-select').value = name;
 
     console.log("👤 使用者身份已儲存");
-}
-function loadUserIdentity() {
-
-    const savedUser = localStorage.getItem("travelAppUser");
-
-    if (savedUser) {
-
-        appState.currentUser = savedUser;
-
-        const select1 = document.getElementById('user-identity-select');
-
-        const select2 = document.getElementById('modal-user-select');
-
-        if (select1) {
-
-            select1.disabled = false;
-
-            select1.value = savedUser;
-
-            select1.disabled = true;
-        }
-
-        if (select2) {
-
-            select2.value = savedUser;
-        }
-    }
 }
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {
@@ -684,14 +654,22 @@ document.getElementById('user-identity-select').addEventListener('change', funct
 });
 
 function confirmIdentityFromModal() {
-    const u = document.getElementById('modal-user-select').value;
-    if(!u) return;
-    appState.currentUser = u;
-    saveState();
-    document.getElementById('start-identity-modal').style.display = 'none';
-    switchPage('home');
-}
 
+    const u = document.getElementById('modal-user-select').value;
+
+    if(!u) return;
+
+    appState.currentUser = u;
+
+    document.getElementById('user-identity-select').value = u;
+
+    saveState();
+
+    document.getElementById('start-identity-modal').style.display = 'none';
+
+    switchPage('home');
+
+}
 async function fetchWeatherFromAPI() {
     const city = document.getElementById('admin-weather-city').value;
     if (!city) return;
@@ -1230,9 +1208,6 @@ if (appState.vote.open || appState.vote.published) {
     renderDaySelectorDropdown();
     initCurrencyUI();
 }
-window.onload = function () {
-
-    loadUserIdentity();
 
     listenAppState();
 
@@ -1251,7 +1226,7 @@ document.getElementById('start-identity-modal').style.display = 'flex';
 
 } 
     console.log("🚀 Travel App 已啟動");
-}
+
 </script>
 </body>
 </html>
