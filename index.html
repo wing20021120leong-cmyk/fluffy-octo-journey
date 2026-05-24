@@ -830,10 +830,19 @@ function closeLandscapeAddress(){
 function castVote(idx){
     if(!appState.vote.open) return alert("投票未開啟");
     if(!appState.currentUser) return alert("請先選擇身分");
+
+    // --- 新增的安全檢查 ---
+    if (!appState.vote.votesRecord) {
+        appState.vote.votesRecord = {}; // 如果之前係 undefined，就將佢變做空物件
+    }
+    // ----------------------
+
     appState.vote.votesRecord[appState.currentUser] = idx;
     saveState();
+    
+    // 順便 Refresh 一下畫面，睇返自己投咗票
+    renderAll(); 
 }
-
 function adminOpenVote(){
     appState.vote.open = true;
     appState.vote.published = false;
@@ -1120,8 +1129,23 @@ function initAudioEngine(){
 
 // 全局渲染入口
 function renderAll() {
-renderDaySelectorDropdown();
-    document.getElementById('user-identity-select').value = appState.currentUser;
+    // 1. 處理身分選單 (Identity Selection) - 放在函數最開頭，確保安全賦值
+    const modal = document.getElementById('start-identity-modal');
+    const identitySelect = document.getElementById('user-identity-select');
+
+    // 只有當 Modal 關閉，且選單存在時，才去設定值
+    if ((!modal || modal.style.display === 'none') && identitySelect) {
+        if (appState.currentUser && identitySelect.querySelector(`option[value="${appState.currentUser}"]`)) {
+            identitySelect.value = appState.currentUser;
+        } else {
+            identitySelect.value = ""; 
+        }
+    }
+
+    // 2. 接下來執行原本你嗰堆渲染函數
+    renderDaySelectorDropdown();
+    
+    // 廣播邏輯
     const bBox = document.getElementById('live-broadcast-box');
     if (appState.broadcast && appState.broadcast.trim() !== "") {
         document.getElementById('live-broadcast-text').innerText = appState.broadcast;
@@ -1129,6 +1153,8 @@ renderDaySelectorDropdown();
     } else {
         bBox.classList.add('hidden');
     }
+
+    // 航班邏輯
     const now = new Date();
     const currentDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const todayFlight = appState.flights.find(f => f.date === currentDateStr && f.showToGroup);
@@ -1143,6 +1169,8 @@ renderDaySelectorDropdown();
     } else {
         flightBanner.classList.add('hidden');
     }
+
+    // 天氣邏輯
     document.getElementById('weather-location').innerText = appState.weather.name;
     document.getElementById('weather-icon').innerText = appState.weather.icon;
     document.getElementById('bg-weather-emoji').innerText = appState.weather.icon;
@@ -1151,6 +1179,8 @@ renderDaySelectorDropdown();
     document.getElementById('weather-temp-max').innerHTML = `${convertToEmojiNumbers(appState.weather.max)} <span class="text-xs">°C</span>`;
     document.getElementById('weather-temp-min').innerHTML = `${convertToEmojiNumbers(appState.weather.min)} <span class="text-xs">°C</span>`;
     document.getElementById('weather-humidity').innerText = `${appState.weather.humidity}%`;
+
+    // 公告邏輯
     const noticeContainer = document.getElementById('notice-list');
     noticeContainer.innerHTML = appState.notices.map((n, idx) => `
         <div onclick="toggleNoticeItem(${idx})" class="bg-white border-2 border-[#2B1B17] rounded-xl px-3 py-2.5 shadow-sm font-black text-sm cursor-pointer transition-all flex items-center gap-2 ${n.done ? 'notice-done' : ''}">
@@ -1158,35 +1188,73 @@ renderDaySelectorDropdown();
             <span class="flex-1 break-words">${n.text}</span>
         </div>
     `).join('');
+
+    // 路線邏輯
     document.getElementById('core-route-embed-box').innerHTML = `<iframe src="${appState.routeEmbedUrl}" class="w-full h-full border-0" allowfullscreen="" loading="lazy"></iframe>`;
     document.getElementById('route-tips-display').innerText = appState.routeTips || "暫無隊長出口路線提示。";
     document.getElementById('transport-route-link').href = appState.transportUrl;
-    document.getElementById('vote-title').innerText = appState.vote.title;
-    document.getElementById('vote-deadline-display').innerText = appState.vote.deadline || "未設定";
-    let option0Votes = 0; let option1Votes = 0;
-    Object.values(appState.vote.votesRecord).forEach(v => { if (v === 0) option0Votes++; if (v === 1) option1Votes++; });
-const vContainer = document.getElementById('vote-options-container');
-const userChoice = appState.vote.votesRecord[appState.currentUser];
-if (appState.vote.open || appState.vote.published) {
-    vContainer.innerHTML = appState.vote.options.map((opt, idx) => {
-        const isSelected = userChoice === idx;
-        return `
-            <div onclick="castVote(${idx})" class="cute-card m-0 flex flex-col items-center justify-center p-4 cursor-pointer border-4 transition-all ${isSelected ? 'bg-[#FFDE4D] border-[#2B1B17] scale-105 shadow-[4px_4px_0px_0px_#2B1B17]' : 'bg-white border-gray-300'}" style="margin:0 !important;">
-                <div class="text-5xl sm:text-6xl my-2">${opt.img || '🍢'}</div>
-                <div class="text-sm sm:text-base font-black text-center mt-1 text-[#2B1B17] leading-tight break-words">${opt.text}</div>
-                ${isSelected ? '<span class="text-xs bg-[#2B1B17] text-white px-2 py-0.5 rounded-full mt-2 font-bold">你投了這票 🌟</span>' : ''}
-            </div>
+
+    // 投票邏輯 (已修正變數衝突)
+    const vContainer = document.getElementById('vote-options-container');
+    const vRecord = appState.vote.votesRecord || {}; 
+    const userChoice = vRecord[appState.currentUser];
+// --- 投票標題與時間顯示邏輯 ---
+    // 前台顯示：標題
+   // --- 投票標題與時間 (確保這部分在 renderAll 裡面) ---
+    const voteTitleEl = document.getElementById('vote-title');
+    if (voteTitleEl) {
+        voteTitleEl.innerText = appState.vote.title;
+    }
+
+    // 前台顯示：截止時間
+     const voteDeadlineEl = document.getElementById('vote-deadline-display');
+    if (voteDeadlineEl) {
+        voteDeadlineEl.innerText = appState.vote.deadline;
+    }
+    // 後台管理輸入框同步 (確保你修改時看得到原本的數據)
+    const adminTitleInput = document.getElementById('admin-vote-title');
+    if (adminTitleInput) adminTitleInput.value = appState.vote.title || "";
+
+    const adminDeadlineInput = document.getElementById('admin-vote-deadline');
+    if (adminDeadlineInput) adminDeadlineInput.value = appState.vote.deadline || "";
+    // ----------------------------
+
+    // 統計票數
+    let option0Votes = 0;
+    let option1Votes = 0;
+    Object.values(vRecord).forEach(v => {
+        if (v === 0) option0Votes++;
+        if (v === 1) option1Votes++;
+    });
+
+    // 建立人名清單
+    const n0 = Object.entries(vRecord).filter(([_,v])=>v===0).map(([n])=>n);
+    const n1 = Object.entries(vRecord).filter(([_,v])=>v===1).map(([n])=>n);
+
+    if (appState.vote.open || appState.vote.published) {
+        vContainer.innerHTML = appState.vote.options.map((opt, idx) => {
+            const isSelected = userChoice === idx;
+            return `
+                <div onclick="castVote(${idx})" class="cute-card m-0 flex flex-col items-center justify-center p-4 cursor-pointer border-4 transition-all ${isSelected ? 'bg-[#FFDE4D] border-[#2B1B17] scale-105 shadow-[4px_4px_0px_0px_#2B1B17]' : 'bg-white border-gray-300'}" style="margin:0 !important;">
+                    <div class="text-5xl sm:text-6xl my-2">${opt.img || '🍢'}</div>
+                    <div class="text-sm sm:text-base font-black text-center mt-1 text-[#2B1B17] leading-tight break-words">${opt.text}</div>
+                    ${isSelected ? '<span class="text-xs bg-[#2B1B17] text-white px-2 py-0.5 rounded-full mt-2 font-bold">你投了這票 🌟</span>' : ''}
+                </div>
+            `;
+        }).join("");
+    } else {
+        vContainer.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-6 text-sm">🔒 投票暫未開啟</div>';
+    }
+
+    // 投票結果顯示
+    const radar = document.getElementById('admin-vote-radar-box');
+    if (radar) {
+        radar.innerHTML = `
+            <span class="text-blue-600">【${appState.vote.options[0].text}】</span>: <strong>${option0Votes} 票</strong> <span class="text-gray-400 font-normal">(${n0.join(', ') || '冇人投'})</span><br>
+            <span class="text-purple-600">【${appState.vote.options[1].text}】</span>: <strong>${option1Votes} 票</strong> <span class="text-gray-400 font-normal">(${n1.join(', ') || '冇人投'})</span>
         `;
-    }).join('');
-} else {
-    vContainer.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-6 text-sm">🔒 投票暫未開啟，請等待隊長發起</div>';
-}
-    let op0Names = [], op1Names = [];
-    Object.entries(appState.vote.votesRecord).forEach(([name, choice]) => { if (choice === 0) op0Names.push(name); if (choice === 1) op1Names.push(name); });
-    document.getElementById('admin-vote-radar-box').innerHTML = `
-        <span class="text-blue-600">【${appState.vote.options[0].text}】</span>: <strong>${option0Votes} 票</strong> <span class="text-gray-400 font-normal">(${op0Names.join(', ') || '冇人投'})</span><br>
-        <span class="text-purple-600">【${appState.vote.options[1].text}】</span>: <strong>${option1Votes} 票</strong> <span class="text-gray-400 font-normal">(${op1Names.join(', ') || '冇人投'})</span>
-    `;
+    }
+
     const resultSec = document.getElementById('vote-result-section');
     if (appState.vote.published) {
         resultSec.classList.remove('hidden');
@@ -1196,36 +1264,33 @@ if (appState.vote.open || appState.vote.published) {
             <div><div class="flex justify-between text-xs font-black mb-1 text-gray-700"><span>${appState.vote.options[0].img} ${appState.vote.options[0].text}</span> <span>${p1}% (${option0Votes}票)</span></div><div class="w-full bg-gray-200 rounded-full h-6 border-2 border-[#2B1B17] overflow-hidden"><div class="bg-[#FF8B8B] h-full rounded-full transition-all" style="width: ${p1}%"></div></div></div>
             <div><div class="flex justify-between text-xs font-black mb-1 text-gray-700"><span>${appState.vote.options[1].img} ${appState.vote.options[1].text}</span> <span>${p2}% (${option1Votes}票)</span></div><div class="w-full bg-gray-200 rounded-full h-6 border-2 border-[#2B1B17] overflow-hidden"><div class="bg-[#B4F8C8] h-full rounded-full transition-all" style="width: ${p2}%"></div></div></div>
         `;
-    } else resultSec.classList.add('hidden');
+    } else {
+        resultSec.classList.add('hidden');
+    }
+
     document.getElementById('admin-wishes-box').innerHTML = appState.wishes.map(w => `<div>🔮 <strong>${w.user || '匿名'}:</strong> ${w.text}</div>`).join('') || "目前許願池空空如也～";
+
     const gatherModal = document.getElementById('gather-alert-modal');
     if (appState.gatherOrder && appState.gatherOrder.active) {
         document.getElementById('gather-alert-msg').innerText = appState.gatherOrder.msg;
         gatherModal.style.display = 'flex';
         if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 600, 200, 400]);
-    } else gatherModal.style.display = 'none';
+    } else {
+        gatherModal.style.display = 'none';
+    }
+
     calculateLiveAndNextItinerary();
-    renderDaySelectorDropdown();
-    initCurrencyUI();
 }
 
-    listenAppState();
-
-    renderAll();
-
-    initCurrencyUI();
-
-    loadCurrencyChecks();
-
-    renderDaySelectorDropdown();
-
-    calculateLiveAndNextItinerary();
+// 頁面最後初始化
+listenAppState(); // 假設你有呢個監聽函數
+renderAll();
+initCurrencyUI();
+loadCurrencyChecks();
 if (!appState.currentUser) {
-
-document.getElementById('start-identity-modal').style.display = 'flex';
-
-} 
-    console.log("🚀 Travel App 已啟動");
+    document.getElementById('start-identity-modal').style.display = 'flex';
+}
+console.log("🚀 Travel App 已啟動");
 
 </script>
 </body>
